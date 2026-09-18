@@ -36,19 +36,25 @@ def _table_count(connection: sqlite3.Connection, table: str) -> int:
 @app.get("/api/health")
 def health() -> dict:
     structured = ROOT / "data" / "processed" / "marine_research.sqlite"
-    counts = {"mpa_zones": 0, "edna_occurrences": 0, "reefcheck_events": 0}
+    counts = {"mpa_zones": 0, "edna_occurrences": 0, "reefcheck_events": 0, "marine_forecasts": 0}
+    forecast_window = None
     if structured.exists():
         with sqlite3.connect(structured) as connection:
             counts = {
                 "mpa_zones": _table_count(connection, "mpa_zone"),
                 "edna_occurrences": _table_count(connection, "edna_occurrence"),
                 "reefcheck_events": _table_count(connection, "reefcheck_event"),
+                "marine_forecasts": _table_count(connection, "marine_forecast"),
             }
+            if counts["marine_forecasts"]:
+                row = connection.execute("SELECT MIN(valid_at), MAX(valid_at) FROM marine_forecast").fetchone()
+                forecast_window = {"valid_from": row[0], "valid_to": row[1]}
     latest_tide = sorted((ROOT / "data" / "raw" / "external" / "cwa").glob("F-A0021-001_*.provenance.json"))
     return {
         "service": "research-evidence-api",
         "structured_database_ready": structured.exists(),
         "counts": counts,
+        "forecast_window": forecast_window,
         "latest_tide_provenance": json.loads(latest_tide[-1].read_text(encoding="utf-8")) if latest_tide else None,
         "safety": "No site is labelled safe. Legal rules and live data must be current and complete.",
     }

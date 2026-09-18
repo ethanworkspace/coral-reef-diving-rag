@@ -36,6 +36,7 @@ def _create_schema(connection: sqlite3.Connection) -> None:
         DROP TABLE IF EXISTS edna_occurrence;
         DROP TABLE IF EXISTS reefcheck_event;
         DROP TABLE IF EXISTS reefcheck_occurrence;
+        DROP TABLE IF EXISTS marine_forecast;
         DROP TABLE IF EXISTS import_run;
         CREATE TABLE mpa_zone (
           objectid INTEGER PRIMARY KEY, name_zh TEXT, name_en TEXT, county_zh TEXT,
@@ -62,6 +63,14 @@ def _create_schema(connection: sqlite3.Connection) -> None:
           vernacular_name TEXT
         );
         CREATE INDEX idx_reefcheck_event ON reefcheck_occurrence(event_id);
+        CREATE TABLE marine_forecast (
+          id INTEGER PRIMARY KEY, source_file TEXT NOT NULL, dataset_id TEXT NOT NULL,
+          issued_at TEXT, sent_at TEXT, valid_at TEXT NOT NULL, location_code TEXT,
+          location_name TEXT, latitude REAL, longitude REAL, significant_wave_height_m REAL,
+          wave_direction TEXT, wave_period_s REAL, current_direction TEXT, current_speed_mps REAL
+        );
+        CREATE INDEX idx_forecast_location_time ON marine_forecast(location_code, valid_at);
+        CREATE INDEX idx_forecast_valid_time ON marine_forecast(valid_at);
         CREATE TABLE import_run (source_name TEXT PRIMARY KEY, record_count INTEGER, imported_at TEXT);
         """
     )
@@ -135,6 +144,32 @@ def _import_reefcheck(connection: sqlite3.Connection, root: Path) -> tuple[int, 
     return len(events), len(occurrences)
 
 
+def _import_cwa_model_forecast(connection: sqlite3.Connection, path: Path) -> int:
+    document = json.loads(path.read_text(encoding="utf-8"))
+    root = document.get("cwaopendata", {})
+    dataset = root.get("dataset", {})
+    issued_at = dataset.get("datasetInfo", {}).get("IssueTime")
+    rows = []
+    for location in dataset.get("location", []):
+        rows.append((
+            path.name, root.get("dataid", "M-B0078-001"), issued_at, root.get("sent"),
+            location.get("DateTime"), location.get("LocationCode"), location.get("LocationName"),
+            _number(location.get("Latitude")), _number(location.get("Longitude")),
+            _number(location.get("SignificantWaveHeight")), location.get("WaveDirectionForecast"),
+            _number(location.get("WavePeriod")), location.get("OceanCurrentDirectionForecast"),
+            _number(location.get("OceanCurrentSpeed")),
+        ))
+    connection.executemany(
+        """INSERT INTO marine_forecast(
+          source_file, dataset_id, issued_at, sent_at, valid_at, location_code, location_name,
+          latitude, longitude, significant_wave_height_m, wave_direction, wave_period_s,
+          current_direction, current_speed_mps
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+        rows,
+    )
+    return len(rows)
+
+
 def build_structured_database() -> int:
     settings = Settings.from_project_root(Path(__file__).resolve().parents[2])
     raw = settings.project_root / "data" / "raw" / "external"
@@ -157,6 +192,13 @@ def build_structured_database() -> int:
         reefcheck_root = raw / "reference" / "reefcheck_taiwan_dwca"
         if (reefcheck_root / "event.txt").exists() and (reefcheck_root / "occurrence.txt").exists():
             counts["reefcheck_event"], counts["reefcheck_occurrence"] = _import_reefcheck(connection, reefcheck_root)
+        forecast_files = [
+            path for path in (raw / "cwa").glob("M-B0078-001*.json")
+            if not path.name.endswith(".provenance.json")
+        ]
+        if forecast_files:
+            latest_forecast = max(forecast_files, key=lambda path: path.stat().st_mtime)
+            counts["marine_forecast"] = _import_cwa_model_forecast(connection, latest_forecast)
         timestamp = datetime.now(timezone.utc).isoformat()
         connection.executemany(
             "INSERT INTO import_run VALUES (?, ?, ?)", [(name, count, timestamp) for name, count in counts.items()]

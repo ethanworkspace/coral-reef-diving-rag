@@ -102,7 +102,8 @@ sources:
     local_path: data/raw/external/cwa/
     use: live wave/current forecast with issued and valid times
     license_status: requires the user's CWA authorization code for download
-    download_status: CWA REST API returned HTTP 404 Resource not found on 2026-09-18 with a valid authorization code; do not substitute another dataset without source review
+    download_url: https://cwaopendata.s3.ap-northeast-1.amazonaws.com/Model/M-B0078-001.json
+    download_status: official model JSON downloaded 2026-09-18; 170 locations and 4,080 valid-time forecast rows imported. CWA REST API endpoint still returned 404, so this direct official model object is used instead.
   - id: cwa_tide
     title: CWA 潮位預報資料
     kind: official_authenticated_api

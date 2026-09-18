@@ -17,6 +17,7 @@ PUBLIC_FILES = {
     "edna/edna_diving_110_113.csv": "https://iocean.oca.gov.tw/oca_datahub/WebService/GetData.ashx?id=27b6c7d6-62cd-465e-b429-a5e010f7f7d8",
     "edna/edna_ship_110_112.csv": "https://iocean.oca.gov.tw/oca_datahub/WebService/GetData.ashx?id=3091c6ca-8fb7-4fbb-bd47-c325d7db5072",
     "edna/edna_protected_area_110_113.json": "https://iocean.oca.gov.tw/oca_datahub/WebService/GetData.ashx?id=d283f505-065c-41dd-b78b-9c7a2b0cbb9a",
+    "cwa/M-B0078-001.json": "https://cwaopendata.s3.ap-northeast-1.amazonaws.com/Model/M-B0078-001.json",
 }
 
 

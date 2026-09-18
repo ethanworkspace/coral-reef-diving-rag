@@ -68,11 +68,11 @@ python -m coral_rag observations --latitude 22.68 --longitude 121.50 --radius-km
 氣象署資料需要另行申請的 CWA 授權碼；請只在本機 `.env` 設定 `CWA_API_KEY`，不要把它提交或上傳。取得後可下載：
 
 ```powershell
-python -m coral_rag fetch-cwa --dataset M-B0078-001  # 休閒海域波浪／海流預報
+python -m coral_rag fetch-cwa --dataset M-B0078-001  # 休閒海域波浪／海流預報（CWA 公開模型檔）
 python -m coral_rag fetch-cwa --dataset F-A0021-001  # 潮位預報
 ```
 
-每次下載會保留原始回應、擷取時間與 SHA-256 檢核碼。系統必須以資料內的有效時間判斷新鮮度；未取得或已過期的資料不得產生下水建議。
+每次下載會保留原始回應、擷取時間與 SHA-256 檢核碼。`M-B0078-001` 的 REST API 目前會回傳 404，系統改採 CWA 公開模型檔；它仍會保留資料內的發布與有效時間。未取得或已過期的資料不得產生下水建議。
 
 ## 網頁服務與部署
 
@@ -85,6 +85,8 @@ uvicorn coral_rag.web:app --host 127.0.0.1 --port 8080
 容器啟動時會下載可公開再利用的海保署邊界與 eDNA 核心資料，並建立結構化資料庫；不會將使用者檔案、CMAS 受版權內容或 CC BY-NC 的 Reef Check 資料打包進公開映像。若部署主機要更新潮位，請在主機的秘密管理設定 `CWA_API_KEY` 後執行 `coral-rag fetch-cwa --dataset F-A0021-001`。
 
 完整的公開部署資料隔離與秘密設定見 [DEPLOYMENT.md](DEPLOYMENT.md)。
+
+容器主機比較與 Railway 上線設定見 [HOSTING_RECOMMENDATION.md](HOSTING_RECOMMENDATION.md)。
 
 ## 資料分層
 
