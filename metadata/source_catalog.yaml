@@ -1,0 +1,157 @@
+schema_version: 1
+retrieved_on: "2026-09-18"
+sources:
+  - id: user_research_plan
+    title: 珊瑚礁浮潛決策支援專題資料盤點與研究規劃
+    kind: user_provided_docx
+    local_path: data/raw/provided/研究規劃原始文件.docx
+    use: project scope, data governance, research design
+    license_status: user-provided; verify before redistribution
+  - id: vocational_diving_exam
+    title: 09800 職業潛水丙級試題
+    kind: user_provided_pdf
+    local_path: data/raw/provided/09800職業潛水丙級試題.pdf
+    use: terminology and training-topic evidence; not a recreational certification rubric
+    license_status: user-provided; verify before redistribution
+  - id: dangerous_waters_report
+    title: 危險海域劃設原則之研究
+    kind: user_provided_pdf
+    local_path: data/raw/provided/危險海域劃設原則研究報告.pdf
+    use: risk-management background; not a real-time safety feed
+    license_status: user-provided; verify before redistribution
+  - id: kenting_wave_control
+    title: 墾丁國家公園岸際海域活動浪高管制標準及旗號
+    kind: user_provided_pdf
+    local_path: data/raw/provided/墾丁浪高管制標準.pdf
+    use: site-specific historical control reference; current validity must be checked with Kenting National Park
+    license_status: user-provided; verify before redistribution
+  - id: cmas_tw_safety
+    title: 中華民國水中運動協會－安全潛水守則
+    kind: webpage_snapshot
+    url: https://www.cmas.tw/modules/neilmfdcms/mfdcmscenter.php?centerid=132
+    local_path: data/raw/external/cmas_tw_diving_safety_rules.html
+    use: diving safety knowledge
+    license_status: webpage snapshot; do not republish without permission
+  - id: cmas_tw_training
+    title: 中華民國水中運動協會－CMAS 潛水教學基準與要求事項
+    kind: webpage_snapshot
+    url: https://www.cmas.tw/modules/neilmfdcms/mfdcmscenter.php?centerid=131
+    local_path: data/raw/external/cmas_tw_training_requirements.html
+    use: Taiwan CMAS training reference
+    license_status: webpage snapshot; do not republish without permission
+  - id: cmas_tw_snorkeling
+    title: 中華民國水中運動協會－浮潛三寶
+    kind: webpage_snapshot
+    url: https://www.cmas.tw/modules/neilmfdcms/mfdcmscenter.php?centerid=133
+    local_path: data/raw/external/cmas_tw_snorkeling_essentials.html
+    use: snorkeling equipment and introductory safety terminology
+    license_status: webpage snapshot; do not republish without permission
+  - id: mpa_certification_reference
+    title: 附件五：自由潛水與水肺潛水證照等級參考表
+    kind: public_pdf
+    url: https://mpa.oca.gov.tw/Files/Knowledge/8348bde932804901a2655e6f333ff739.pdf
+    local_path: data/raw/external/mpa_diver_certification_reference.pdf
+    use: certification-level comparison reference
+    license_status: verify source report and reuse terms before publication
+  - id: cmas_global_standards
+    title: CMAS International Diver Training Standards and Procedures Manual
+    kind: official_web_catalog
+    url: https://www.cmas.org/standards.html
+    local_path: data/raw/external/cmas_global_training_catalog.html
+    use: official catalogue of snorkeling and one-to-four-star scuba standards
+    license_status: CMAS states standards are its exclusive property; link and cite, do not copy/modify
+    download_status: catalogue saved; individual current documents require CMAS account login as of 2026-09-18
+  - id: iai_tutorial
+    title: NKUST iAI API connection tutorial
+    kind: user_provided_public_document_export
+    url: https://docs.google.com/document/d/1BaG1DVN6YbeyDoT4Z0uw_ocCa71txZB-fNgA4LZ0Cso/edit
+    local_path: data/raw/external/iai_connection_tutorial.txt
+    use: API endpoints and credential-handling guidance
+    license_status: user-provided link; do not redistribute without permission
+  - id: nkust_iai_notice
+    title: NKUST iAI service announcement
+    kind: official_webpage
+    url: https://cc.nkust.edu.tw/p/404-1025-107458.php
+    use: account eligibility and usage policy reference
+    license_status: link only
+  - id: cmas_instructor_manual_2023
+    title: CMAS 教練手冊 2023 中文版
+    kind: user_provided_pdf
+    local_path: data/raw/provided/CMAS教練手冊2023中文版.pdf
+    use: instructor-training terminology and curriculum context
+    license_status: user-provided; verify CMAS copyright and redistribution permission before publication
+  - id: mpa_boundaries_wfs
+    title: 海洋保護區範圍圖資（WGS84）
+    kind: official_wfs_geojson
+    url: https://mpa.oca.gov.tw/geoserver/mpa/ows?service=WFS&version=2.0.0&request=GetFeature&typeNames=mpa:map_protected_area&outputFormat=application%2Fjson&srsName=EPSG%3A4326
+    local_path: data/raw/external/mpa/taiwan_mpa_boundaries_wgs84.geojson
+    use: boundary screening and protected-area identification only
+    license_status: official service; verify terms before redistribution
+    download_status: 71 features retrieved 2026-09-18; feature update times retained in structured database
+  - id: mpa_legal_framework
+    title: 海洋保護區管理與法規架構
+    kind: official_webpage_snapshot
+    url: https://mpa.oca.gov.tw/ProtectedManageAffair.aspx
+    local_path: data/raw/external/mpa/mpa_legal_framework.html
+    use: identify governing laws and authorities; not a substitute for a zone-specific current notice
+    license_status: link and cite; verify before republication
+  - id: cwa_marine_wave_current
+    title: CWA 休閒海域波浪與海流模式預報資料
+    kind: official_authenticated_api
+    url: https://opendata.cwa.gov.tw/dataset/observation/M-B0078-001
+    local_path: data/raw/external/cwa/
+    use: live wave/current forecast with issued and valid times
+    license_status: requires the user's CWA authorization code for download
+    download_status: CWA REST API returned HTTP 404 Resource not found on 2026-09-18 with a valid authorization code; do not substitute another dataset without source review
+  - id: cwa_tide
+    title: CWA 潮位預報資料
+    kind: official_authenticated_api
+    url: https://opendata.cwa.gov.tw/dataset/forecast/F-A0021-001
+    local_path: data/raw/external/cwa/
+    use: tide height and high/low-tide time, subject to source validity time
+    license_status: requires the user's CWA authorization code for download
+    download_status: downloaded 2026-09-18; 266 forecast locations and source provenance retained locally
+  - id: oca_edna
+    title: 臺灣周邊海域環境 DNA 採樣調查資料
+    kind: official_open_data
+    url: https://data.gov.tw/en/datasets/172487
+    local_path: data/raw/external/edna/
+    use: sampled station, position, depth, date, taxon, family, and project category
+    license_status: OGL 1.0 as stated by the dataset portal; retain attribution and source metadata
+    download_status: 19,736 records imported from diving, ship, and protected-area resources on 2026-09-18
+  - id: taibif_reefcheck
+    title: Reef Check Taiwan Darwin Core Archive
+    kind: biodiversity_occurrence_archive
+    url: https://ipt.taibif.tw/resource?r=reefchecktaiwan
+    local_path: data/raw/external/reference/reefcheck_taiwan_dwca.zip
+    use: visual-survey events, methods, location, depth and taxon observations
+    license_status: CC BY-NC 4.0; not for commercial reuse without permission
+    download_status: 2,068 events and 3,369 occurrences imported on 2026-09-18
+  - id: south_sea_biodiversity_report
+    title: 南方四島海洋保護區生物多樣性調查報告
+    kind: official_public_pdf
+    url: https://mpa.oca.gov.tw/Files/Knowledge/f3b99c82a5a04d7b81fef7b646d13803.pdf
+    local_path: data/raw/external/reference/south_sea_biodiversity_survey_report.pdf
+    use: documented survey context and methods
+    license_status: verify report reuse terms before publication
+  - id: kenting_water_recreation_plan
+    title: 修正墾丁國家公園水域遊憩活動管理方案（114 年 6 月內政部核定版）
+    kind: official_current_webpage_snapshot
+    url: https://www.ktnp.gov.tw/cp.aspx?n=FA9BBE6DDF732116&s=D2B8BE05FF169D0B
+    local_path: data/raw/external/kenting_current_water_recreation_plan.html
+    use: Kenting-specific activity areas, permits, and current management references
+    license_status: link and cite; verify source and effective date before republication
+  - id: kenting_prohibitions
+    title: 墾丁國家公園岸際海域遊憩活動禁止事項
+    kind: official_current_webpage_snapshot
+    url: https://www.ktnp.gov.tw/cp.aspx?n=a19bc236dae01941&s=12AED0688767E7CF
+    local_path: data/raw/external/kenting_current_prohibitions.html
+    use: Kenting-specific hard constraints, including posted-wave restrictions
+    license_status: link and cite; verify source and effective date before operational use
+  - id: kenting_houbihu_prohibition
+    title: 後壁湖港航道西側禁止自由潛水活動公告
+    kind: official_notice_snapshot
+    url: https://www.ktnp.gov.tw/News_Content4.aspx?n=3D7C9BFC4F86BF4A&s=5CB2BE4BA6514BA8&sms=CBE2AF4E776CBCD5
+    local_path: data/raw/external/kenting_houbihu_freediving_prohibition.html
+    use: location-specific prohibition evidence; must be rechecked for current validity
+    license_status: link and cite; do not treat as a nationwide rule

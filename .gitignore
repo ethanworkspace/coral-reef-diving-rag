@@ -1,0 +1,25 @@
+# Secrets and machine-local configuration
+.env
+.env.*
+!.env.example
+*.key
+*.pem
+secrets/
+
+# Generated indexes, logs, and large raw data
+data/processed/*.sqlite
+data/processed/*.jsonl
+data/raw/external/*
+!data/raw/external/.gitkeep
+# Input documents and images may be copyrighted, personal, or subject to data-use terms.
+# Publish provenance and retrieval code, never these copies by default.
+data/raw/provided/*
+!data/raw/provided/.gitkeep
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+*.egg-info/
+
+# Avoid accidentally committing credentials copied from a shell history
+*.history

@@ -1,0 +1,16 @@
+policy_version: "0.1.0"
+purpose: Conservative answer policy for a research decision-support prototype.
+hard_stops:
+  - A language model must never label a site or dive as safe from wave height alone.
+  - A language model must not create a dive plan, navigation route, decompression plan, or medical advice.
+  - If legal access, activity zone, valid time, wave, current, tide, wind, site exposure, exit route, or user competency is missing, output data_insufficient.
+  - Sensitive species locations must be generalized or withheld until a data-access policy is approved.
+live_data:
+  max_age_hours: 6
+  required_fields: [valid_time, source, wave_height, wave_period, current_speed, wind_speed, tide]
+  behavior_when_stale: data_insufficient
+training_levels:
+  policy: Training agencies and local operators define certification recognition. Never infer depth, supervision, or environmental privileges from a label alone.
+  sources: [cmas_tw_training, mpa_certification_reference, cmas_global_standards]
+wave_control:
+  policy: The Kenting reference is site-specific and must not be generalized to Taiwan or treated as current without checking the current notice.
