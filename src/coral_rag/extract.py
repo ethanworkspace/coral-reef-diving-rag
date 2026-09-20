@@ -1,11 +1,12 @@
 from __future__ import annotations
 
 import hashlib
+import xml.etree.ElementTree as ElementTree
+from zipfile import ZipFile
 from dataclasses import dataclass
 from html.parser import HTMLParser
 from pathlib import Path
 
-from docx import Document
 from pypdf import PdfReader
 
 
@@ -53,13 +54,17 @@ def extract(path: Path) -> list[ExtractedPart]:
                 pages.append(ExtractedPart(f"page {index}", text))
         return pages
     if suffix == ".docx":
-        document = Document(path)
-        paragraphs = [paragraph.text.strip() for paragraph in document.paragraphs if paragraph.text.strip()]
-        for table in document.tables:
-            for row in table.rows:
-                text = " | ".join(cell.text.replace("\n", " / ").strip() for cell in row.cells)
-                if text.strip(" |"):
-                    paragraphs.append(text)
+        # DOCX files are ZIP archives containing WordprocessingML. Reading text
+        # nodes directly avoids a platform-specific python-docx/lxml dependency.
+        with ZipFile(path) as archive:
+            document_xml = archive.read("word/document.xml")
+        root = ElementTree.fromstring(document_xml)
+        namespace = {"w": "http://schemas.openxmlformats.org/wordprocessingml/2006/main"}
+        paragraphs: list[str] = []
+        for paragraph in root.findall(".//w:p", namespace):
+            text = "".join(node.text or "" for node in paragraph.findall(".//w:t", namespace)).strip()
+            if text:
+                paragraphs.append(text)
         return [ExtractedPart("document", "\n".join(paragraphs))]
     if suffix in {".txt", ".md", ".yaml", ".yml", ".json", ".csv"}:
         return [ExtractedPart("text", path.read_text(encoding="utf-8", errors="replace"))]

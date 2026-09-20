@@ -3,27 +3,52 @@
 from __future__ import annotations
 
 import json
+import os
 import sqlite3
+from datetime import datetime
 from pathlib import Path
 
-from fastapi import FastAPI, HTTPException, Query
-from fastapi.responses import HTMLResponse
+from fastapi import Depends, FastAPI, HTTPException, Query
+from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
 from .iai import IAIClient, IAIError
+from .general_weather import GeneralWeatherError, find_general_weather_forecast
+from .full_text import search_with_policy
+from .knowledge import load_conservation_cards, render_conservation_cards
+from .marine_forecast import ForecastError, find_marine_forecast, utc_now
+from .nearby_edna import DEFAULT_LIMIT, MAX_LIMIT, MAX_OFFSET, MAX_RADIUS_M, find_nearby_edna_evidence
+from .nearby_reef_check import (
+    ReefCheckLicenseRestrictedError,
+    find_nearby_reefcheck_evidence,
+)
 from .observations import find_observations
 from .query import answer, retrieve
 from .settings import Settings
-from .store import KnowledgeStore
+from .store import FTSIndexNotReadyError, FTSUnavailableError, KnowledgeStore
+from .research_assistant import run_research_assistant
 
 
 ROOT = Path(__file__).resolve().parents[2]
+PACKAGE_ROOT = Path(__file__).resolve().parent
+STATIC_ROOT = PACKAGE_ROOT / "static"
+TEMPLATE_ROOT = PACKAGE_ROOT / "templates"
 app = FastAPI(title="珊瑚礁浮潛與水肺潛水研究支援", docs_url=None, redoc_url=None)
+app.mount("/static", StaticFiles(directory=STATIC_ROOT), name="static")
 
 
 class QueryRequest(BaseModel):
     question: str = Field(min_length=2, max_length=500)
     use_llm: bool = False
+
+
+class ResearchAssistantRequest(BaseModel):
+    question: str = Field(min_length=2, max_length=500)
+    site_id: str | None = Field(default=None, min_length=1, max_length=160)
+    radius_m: int | None = Field(default=None, ge=1, le=MAX_RADIUS_M)
+    start_at: str | None = Field(default=None, min_length=20, max_length=40)
+    end_at: str | None = Field(default=None, min_length=20, max_length=40)
 
 
 def _table_count(connection: sqlite3.Connection, table: str) -> int:
@@ -33,9 +58,196 @@ def _table_count(connection: sqlite3.Connection, table: str) -> int:
         return 0
 
 
+def _dive_site_payload(row: sqlite3.Row) -> dict:
+    return {
+        "id": row["site_id"],
+        "name": row["name"],
+        "latitude": row["latitude"],
+        "longitude": row["longitude"],
+        "administrative_area": {"county": row["county"], "district": row["district"]},
+        "source": {"name": row["source_name"], "reference": row["source_reference"]},
+        "last_verified_at": row["last_verified_at"],
+        "data_quality": row["data_quality"],
+        "created_at": row["created_at"],
+        "updated_at": row["updated_at"],
+    }
+
+
+def _dive_sites_database() -> Path:
+    configured = os.getenv("CORAL_RAG_STRUCTURED_DB")
+    return Path(configured) if configured else ROOT / "data" / "processed" / "marine_research.sqlite"
+
+
+def _rag_database() -> Path:
+    configured = os.getenv("CORAL_RAG_RAG_DB")
+    return Path(configured) if configured else ROOT / "data" / "processed" / "rag.sqlite"
+
+
+@app.get("/api/dive-sites")
+def list_dive_sites(
+    region: str | None = Query(default=None, min_length=1, max_length=100),
+    keyword: str | None = Query(default=None, min_length=1, max_length=100),
+    limit: int = Query(default=200, ge=1, le=500),
+) -> dict:
+    """List curator-supplied, source-linked site records; never infer a site from observations."""
+    database = _dive_sites_database()
+    if not database.exists():
+        return {"items": [], "count": 0}
+
+    clauses: list[str] = []
+    parameters: list[str | int] = []
+    if region:
+        clauses.append("(county LIKE ? ESCAPE '\\' OR district LIKE ? ESCAPE '\\')")
+        pattern = f"%{region.replace('\\', '\\\\').replace('%', '\\%').replace('_', '\\_')}%"
+        parameters.extend((pattern, pattern))
+    if keyword:
+        clauses.append("(site_id LIKE ? ESCAPE '\\' OR name LIKE ? ESCAPE '\\')")
+        pattern = f"%{keyword.replace('\\', '\\\\').replace('%', '\\%').replace('_', '\\_')}%"
+        parameters.extend((pattern, pattern))
+    where = f" WHERE {' AND '.join(clauses)}" if clauses else ""
+    statement = (
+        "SELECT site_id, name, latitude, longitude, county, district, source_name, source_reference, "
+        "last_verified_at, data_quality, created_at, updated_at FROM dive_sites"
+        f"{where} ORDER BY name COLLATE NOCASE, site_id LIMIT ?"
+    )
+    try:
+        connection = sqlite3.connect(database)
+        try:
+            connection.row_factory = sqlite3.Row
+            rows = connection.execute(statement, [*parameters, limit]).fetchall()
+        finally:
+            connection.close()
+    except sqlite3.OperationalError:
+        # A database built by an older release has no curated sites yet.
+        return {"items": [], "count": 0}
+    items = [_dive_site_payload(row) for row in rows]
+    return {"items": items, "count": len(items)}
+
+
+@app.get("/api/dive-sites/{site_id}")
+def get_dive_site(site_id: str) -> dict:
+    """Return one source-linked site record without any safety, legality, or suitability judgement."""
+    database = _dive_sites_database()
+    if not database.exists():
+        raise HTTPException(status_code=404, detail="Dive site not found")
+    try:
+        connection = sqlite3.connect(database)
+        try:
+            connection.row_factory = sqlite3.Row
+            row = connection.execute(
+                """SELECT site_id, name, latitude, longitude, county, district, source_name,
+                   source_reference, last_verified_at, data_quality, created_at, updated_at
+                   FROM dive_sites WHERE site_id = ?""",
+                (site_id,),
+            ).fetchone()
+        finally:
+            connection.close()
+    except sqlite3.OperationalError:
+        row = None
+    if row is None:
+        raise HTTPException(status_code=404, detail="Dive site not found")
+    return _dive_site_payload(row)
+
+
+@app.get("/api/dive-sites/{site_id}/nearby-edna")
+def nearby_edna(
+    site_id: str,
+    radius_m: int = Query(..., ge=1, le=MAX_RADIUS_M),
+    limit: int = Query(default=DEFAULT_LIMIT, ge=1, le=MAX_LIMIT),
+    offset: int = Query(default=0, ge=0, le=MAX_OFFSET),
+) -> dict:
+    """Return nearby historical eDNA evidence without creating a persistent site relationship."""
+    try:
+        result = find_nearby_edna_evidence(
+            _dive_sites_database(), site_id, radius_m, limit=limit, offset=offset
+        )
+    except (RuntimeError, sqlite3.OperationalError) as error:
+        raise HTTPException(status_code=503, detail=f"Structured eDNA data unavailable: {error}") from error
+    if result is None:
+        raise HTTPException(status_code=404, detail="Dive site not found")
+    return result
+
+
+@app.get("/api/dive-sites/{site_id}/nearby-reef-check")
+def nearby_reef_check(
+    site_id: str,
+    radius_m: int = Query(..., ge=1, le=MAX_RADIUS_M),
+    limit: int = Query(default=DEFAULT_LIMIT, ge=1, le=MAX_LIMIT),
+    offset: int = Query(default=0, ge=0, le=MAX_OFFSET),
+) -> JSONResponse:
+    """License-gated local research access to historical Reef Check visual evidence."""
+    try:
+        result = find_nearby_reefcheck_evidence(
+            _dive_sites_database(), site_id, radius_m, limit=limit, offset=offset
+        )
+    except ReefCheckLicenseRestrictedError:
+        return JSONResponse(
+            {
+                "status": "license_restricted",
+                "reason": "local_noncommercial_research_mode_required",
+                "detail": "Reef Check observations are disabled unless explicit local non-commercial research mode is enabled. No observation content is returned.",
+            },
+            status_code=403,
+            headers={"Cache-Control": "no-store"},
+        )
+    except (RuntimeError, sqlite3.OperationalError):
+        return JSONResponse(
+            {"status": "data_unavailable", "reason": "structured_reef_check_data_unavailable"},
+            status_code=503,
+            headers={"Cache-Control": "no-store"},
+        )
+    if result is None:
+        raise HTTPException(status_code=404, detail="Dive site not found")
+    return JSONResponse(result, headers={"Cache-Control": "no-store"})
+
+
+@app.get("/api/dive-sites/{site_id}/marine-forecast")
+def marine_forecast(
+    site_id: str,
+    start_at: str = Query(..., min_length=20, max_length=40, description="Timezone-qualified ISO 8601, inclusive"),
+    end_at: str = Query(..., min_length=20, max_length=40, description="Timezone-qualified ISO 8601, exclusive"),
+    now: datetime = Depends(utc_now),
+) -> JSONResponse:
+    """Source-linked, bounded wave/current forecasts; never an activity decision."""
+    try:
+        try:
+            max_age = Settings.from_project_root(ROOT).max_live_data_age_hours
+        except (OSError, ValueError, TypeError):
+            raise ForecastError("invalid_freshness_configuration") from None
+        payload = find_marine_forecast(
+            _dive_sites_database(), ROOT / "data" / "raw" / "external" / "cwa",
+            site_id, start_at, end_at, now=now, max_age_hours=max_age,
+        )
+        return JSONResponse(payload, headers={"Cache-Control": "no-store"})
+    except ForecastError as error:
+        return JSONResponse(error.payload, status_code=error.status_code, headers={"Cache-Control": "no-store"})
+
+
+@app.get("/api/dive-sites/{site_id}/general-weather-forecast")
+def general_weather_forecast(
+    site_id: str,
+    start_at: str = Query(..., min_length=20, max_length=40, description="Timezone-qualified ISO 8601, inclusive"),
+    end_at: str = Query(..., min_length=20, max_length=40, description="Timezone-qualified ISO 8601, exclusive"),
+    now: datetime = Depends(utc_now),
+) -> JSONResponse:
+    """Return only an explicitly mapped administrative-area general-weather forecast."""
+    try:
+        try:
+            max_age = Settings.from_project_root(ROOT).general_weather_max_data_age_hours
+        except (OSError, ValueError, TypeError):
+            raise GeneralWeatherError("invalid_freshness_configuration") from None
+        payload = find_general_weather_forecast(
+            _dive_sites_database(), ROOT / "data" / "raw" / "external" / "cwa",
+            site_id, start_at, end_at, now=now, max_age_hours=max_age,
+        )
+        return JSONResponse(payload, headers={"Cache-Control": "no-store"})
+    except GeneralWeatherError as error:
+        return JSONResponse(error.payload, status_code=error.status_code, headers={"Cache-Control": "no-store"})
+
+
 @app.get("/api/health")
 def health() -> dict:
-    structured = ROOT / "data" / "processed" / "marine_research.sqlite"
+    structured = _dive_sites_database()
     counts = {"mpa_zones": 0, "edna_occurrences": 0, "reefcheck_events": 0, "marine_forecasts": 0}
     forecast_window = None
     if structured.exists():
@@ -71,7 +283,7 @@ def observations(
 ) -> dict:
     try:
         result = find_observations(
-            ROOT / "data" / "processed" / "marine_research.sqlite",
+            _dive_sites_database(),
             latitude, longitude, radius_km, start, end, limit,
         )
     except (RuntimeError, ValueError) as error:
@@ -93,6 +305,118 @@ def query(request: QueryRequest) -> dict:
         store.close()
 
 
+@app.post("/api/research-assistant/query")
+def research_assistant_query(request: ResearchAssistantRequest) -> JSONResponse:
+    """Read-only structured evidence presentation; never calls iAI or the chat pipeline."""
+    payload = run_research_assistant(
+        ROOT, _dive_sites_database(), _rag_database(), question=request.question,
+        site_id=request.site_id, radius_m=request.radius_m, start_at=request.start_at, end_at=request.end_at,
+    )
+    return JSONResponse(payload, headers={"Cache-Control": "no-store"})
+
+
+@app.get("/api/search")
+def full_text_search(
+    q: str = Query(..., min_length=1, max_length=240),
+    limit: int = Query(default=10, ge=1, le=20),
+    include_restricted: bool = Query(default=False),
+) -> JSONResponse:
+    """Read-only, policy-aware FTS evidence retrieval. It never calls an LLM."""
+    database = _rag_database()
+    if not database.exists():
+        return JSONResponse(
+            {"error": "fts_index_unavailable", "detail": "FTS index has not been built."},
+            status_code=503,
+            headers={"Cache-Control": "no-store"},
+        )
+    try:
+        store = KnowledgeStore(database, initialize=False)
+        try:
+            payload = search_with_policy(
+                store, ROOT, q, limit=limit, include_restricted=include_restricted
+            )
+        finally:
+            store.close()
+    except (FTSUnavailableError, FTSIndexNotReadyError, sqlite3.Error):
+        return JSONResponse(
+            {"error": "fts_index_unavailable", "detail": "FTS index is unavailable or not current."},
+            status_code=503,
+            headers={"Cache-Control": "no-store"},
+        )
+    return JSONResponse(payload, headers={"Cache-Control": "no-store"})
+
+
 @app.get("/", response_class=HTMLResponse)
-def homepage() -> str:
-    return """<!doctype html><html lang='zh-Hant'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'><title>珊瑚礁研究支援</title><style>body{font-family:system-ui,sans-serif;max-width:780px;margin:44px auto;padding:0 20px;line-height:1.65;color:#102a43}h1{color:#006d77}button{background:#006d77;color:white;border:0;border-radius:6px;padding:8px 14px}input{padding:8px;width:130px}pre{background:#f1f5f9;padding:16px;white-space:pre-wrap;border-radius:8px}.warn{background:#fff3cd;padding:12px;border-radius:8px}</style></head><body><h1>珊瑚礁浮潛與水肺潛水研究支援</h1><p class='warn'>本系統僅提供可追溯研究證據，絕不判定潛點或下水「安全」。請以主管機關公告、現場旗號、合格專業人員與最新波流潮位覆核。</p><h2>資料狀態</h2><pre id='status'>讀取中…</pre><h2>查詢歷史生物調查</h2><p>輸入座標，查 eDNA 與 Reef Check 的歷史採樣／觀察證據。</p><input id='lat' value='22.68' aria-label='緯度'><input id='lon' value='121.50' aria-label='經度'><button onclick='lookup()'>查詢</button><pre id='result'></pre><script>fetch('/api/health').then(r=>r.json()).then(x=>status.textContent=JSON.stringify(x,null,2)).catch(()=>status.textContent='資料庫尚未初始化');function lookup(){const u='/api/observations?latitude='+encodeURIComponent(lat.value)+'&longitude='+encodeURIComponent(lon.value);fetch(u).then(r=>r.json()).then(x=>result.textContent=x.evidence||x.detail).catch(()=>result.textContent='查詢失敗');}</script></body></html>"""
+def homepage() -> HTMLResponse:
+    """Render the local research-system entry point without external resources."""
+    return HTMLResponse(
+        TEMPLATE_ROOT.joinpath("home.html").read_text(encoding="utf-8"),
+        headers={
+            "Content-Security-Policy": (
+                "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; "
+                "script-src 'self' 'unsafe-inline'; style-src 'self'; img-src 'self' data:; "
+                "connect-src 'self'; font-src 'self'; form-action 'self'"
+            ),
+            "Permissions-Policy": "geolocation=(), camera=(), microphone=()",
+            "Referrer-Policy": "strict-origin-when-cross-origin",
+            "X-Content-Type-Options": "nosniff",
+        },
+    )
+@app.get("/map", response_class=HTMLResponse)
+def map_page() -> HTMLResponse:
+    """Show source-verified representative points with a text-list fallback."""
+    return HTMLResponse(
+        TEMPLATE_ROOT.joinpath("map.html").read_text(encoding="utf-8"),
+        headers={
+            "Content-Security-Policy": (
+                "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; "
+                "script-src 'self' https://unpkg.com; style-src 'self' https://unpkg.com; "
+                "img-src 'self' data: https://unpkg.com https://tile.openstreetmap.org; "
+                "connect-src 'self'; font-src 'self'; form-action 'self'"
+            ),
+            "Permissions-Policy": "geolocation=(), camera=(), microphone=()",
+            "Referrer-Policy": "strict-origin-when-cross-origin",
+            "X-Content-Type-Options": "nosniff",
+        },
+    )
+
+
+@app.get("/knowledge", response_class=HTMLResponse)
+def knowledge_page() -> HTMLResponse:
+    """Render only manually reviewed, low-risk conservation material."""
+    headers = {
+        "Content-Security-Policy": (
+            "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; "
+            "script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'; form-action 'self'"
+        ),
+        "Permissions-Policy": "geolocation=(), camera=(), microphone=()",
+        "Referrer-Policy": "strict-origin-when-cross-origin",
+        "X-Content-Type-Options": "nosniff",
+    }
+    try:
+        cards = load_conservation_cards(ROOT)
+        template = TEMPLATE_ROOT.joinpath("knowledge.html").read_text(encoding="utf-8")
+        content = template.replace("{{knowledge_cards}}", render_conservation_cards(cards))
+    except (OSError, ValueError):
+        content = (
+            "<!doctype html><html lang='zh-Hant'><head><meta charset='utf-8'>"
+            "<title>海洋保育知識</title></head><body><main><h1>海洋保育知識</h1>"
+            "<p>知識內容目前資料不足，請參考官方單位、合格教練或專業人員。</p>"
+            "</main></body></html>"
+        )
+        return HTMLResponse(content=content, status_code=503, headers=headers)
+    return HTMLResponse(content=content, headers=headers)
+
+
+@app.get("/assistant", response_class=HTMLResponse)
+def research_assistant_page() -> HTMLResponse:
+    """Local, non-generative research evidence page with no model integration."""
+    return HTMLResponse(
+        TEMPLATE_ROOT.joinpath("assistant.html").read_text(encoding="utf-8"),
+        headers={
+            "Content-Security-Policy": "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'; form-action 'self'",
+            "Permissions-Policy": "geolocation=(), camera=(), microphone=()",
+            "Referrer-Policy": "strict-origin-when-cross-origin",
+            "X-Content-Type-Options": "nosniff",
+        },
+    )

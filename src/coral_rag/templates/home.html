@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>珊瑚礁研究支援</title>
+    <link rel="stylesheet" href="/static/home.css">
+  </head>
+  <body>
+    <header class="site-header">
+      <p class="eyebrow">本機研究系統</p>
+      <h1>珊瑚礁研究支援</h1>
+      <p class="lead">以可回查資料、來源與限制，協助整理研究證據；本系統不使用生成式模型。</p>
+    </header>
+
+    <main>
+      <section aria-labelledby="feature-navigation-title">
+        <div class="section-heading">
+          <h2 id="feature-navigation-title">功能導覽</h2>
+          <p>請依研究問題選擇入口。每個功能都會保留資料來源與適用限制。</p>
+        </div>
+        <div class="feature-grid" aria-label="研究功能導覽">
+          <a class="feature-card" href='/map' data-feature="research-map">
+            <span class="feature-kind">研究地圖</span>
+            <h3>潛點與研究地圖</h3>
+            <p>查看經來源核對的潛點代表點、附近歷史 eDNA，以及僅限本機非商業研究的 Reef Check 歷史目視證據。</p>
+          </a>
+          <a class="feature-card" href='/map' data-feature="weather-status">
+            <span class="feature-kind">資料狀態</span>
+            <h3>行政區天氣與海況狀態</h3>
+            <p>行政區一般天氣僅在有新鮮快照時顯示；目前海況資料不足，不以其他資料替代。</p>
+          </a>
+          <a class="feature-card" href='/knowledge' data-feature="conservation-knowledge">
+            <span class="feature-kind">可引用知識</span>
+            <h3>海洋保育知識</h3>
+            <p>閱讀低風險海洋保育資訊，以及可追溯的來源、顯名與最後核對日期。</p>
+          </a>
+          <a class="feature-card" href='/assistant' data-feature="research-assistant">
+            <span class="feature-kind">非生成式</span>
+            <h3>研究問答</h3>
+            <p>依安全規則呈現研究證據、來源、資料不足與官方或專業轉介；不是自由生成回答。</p>
+          </a>
+        </div>
+      </section>
+
+      <section class="research-limitations" id="research-limitations" aria-labelledby="limitations-title">
+        <h2 id="limitations-title">研究使用限制</h2>
+        <ul>
+          <li>不提供下水安全、合法性、活動適合度或現場海況判定。</li>
+          <li>潛點座標是景點代表點，不是下水入口或活動範圍。</li>
+          <li>eDNA 與 Reef Check 都是歷史研究證據，不代表當日現場狀態。</li>
+          <li>Reef Check 僅可在明確啟用的本機非商業研究模式使用。</li>
+          <li>潮位為本機研究資料；CWA 天氣與海況依新鮮度及資料可用性 fail-closed。</li>
+          <li>研究問答目前為非生成式，不會儲存聊天紀錄。</li>
+        </ul>
+      </section>
+
+      <section class="utility-panel" aria-labelledby="system-tools-title">
+        <h2 id="system-tools-title">系統狀態與座標查詢</h2>
+        <p>此工具保留既有健康狀態與座標查詢功能；結果僅供研究資料查核。</p>
+        <pre id="status" role="status" aria-live="polite">讀取中</pre>
+        <div class="coordinate-form" aria-label="座標查詢">
+          <label>緯度<input id="lat" type="text" inputmode="decimal" value="22.68"></label>
+          <label>經度<input id="lon" type="text" inputmode="decimal" value="121.50"></label>
+          <button type="button" onclick="lookup()">查詢歷史觀測</button>
+        </div>
+        <pre id="result" role="status" aria-live="polite"></pre>
+      </section>
+    </main>
+
+    <script>
+      const statusElement = document.getElementById("status");
+      const resultElement = document.getElementById("result");
+      const latitudeElement = document.getElementById("lat");
+      const longitudeElement = document.getElementById("lon");
+
+      fetch('/api/health')
+        .then((response) => response.json())
+        .then((payload) => {
+          statusElement.textContent = JSON.stringify(payload, null, 2);
+        })
+        .catch(() => {
+          statusElement.textContent = "健康狀態目前無法取得。";
+        });
+
+      function lookup() {
+        const url = '/api/observations?latitude=' + encodeURIComponent(latitudeElement.value)
+          + '&longitude=' + encodeURIComponent(longitudeElement.value);
+        resultElement.textContent = "查詢中…";
+        fetch(url)
+          .then((response) => response.json())
+          .then((payload) => {
+            const evidence = payload.evidence ?? payload.detail ?? payload;
+            resultElement.textContent = typeof evidence === "string"
+              ? evidence
+              : JSON.stringify(evidence, null, 2);
+          })
+          .catch(() => {
+            resultElement.textContent = "座標查詢目前無法完成。";
+          });
+      }
+    </script>
+  </body>
+</html>

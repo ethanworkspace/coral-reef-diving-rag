@@ -35,7 +35,7 @@ def evidence_markdown(hits: list[SearchHit]) -> str:
     blocks = []
     for index, hit in enumerate(hits, start=1):
         excerpt = hit.text[:700] + ("…" if len(hit.text) > 700 else "")
-        blocks.append(f"[{index}] `{hit.path}` — {hit.label}\n{excerpt}")
+        blocks.append(f"[{index}] `{hit.document_reference}` — {hit.label}\n{excerpt}")
     return "\n\n".join(blocks)
 
 
@@ -43,7 +43,7 @@ def answer(query: str, hits: list[SearchHit], client: IAIClient | None) -> str:
     if not client:
         return "未呼叫 LLM；以下是可核對的檢索證據：\n\n" + evidence_markdown(hits)
     context = "\n\n".join(
-        f"SOURCE [{index}] path={hit.path}; section={hit.label}\n{hit.text}"
+        f"SOURCE [{index}] document_id={hit.document_reference}; section={hit.label}\n{hit.text}"
         for index, hit in enumerate(hits, start=1)
     )
     system = """你是臺灣珊瑚礁浮潛與水肺潛水研究助理。僅依據提供的來源回答，

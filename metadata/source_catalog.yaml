@@ -112,6 +112,36 @@ sources:
     use: tide height and high/low-tide time, subject to source validity time
     license_status: requires the user's CWA authorization code for download
     download_status: downloaded 2026-09-18; 266 forecast locations and source provenance retained locally
+  - id: cwa_taitung_green_island_general_weather
+    title: CWA 臺東縣未來 3 天鄉鎮一般天氣預報（綠島鄉）
+    kind: official_authenticated_api_with_open_reuse_catalog
+    url: https://opendata.cwa.gov.tw/dataset/all/F-D0047-037
+    catalog_url: https://data.gov.tw/dataset/9281
+    download_url: https://opendata.cwa.gov.tw/api/v1/rest/datastore/F-D0047-037
+    local_path: data/raw/external/cwa/
+    use: exact 臺東縣／綠島鄉 administrative-area general-weather forecast only; never a dive-site, marine, tide, current, wave, or safety feed
+    license_status: OGL 1.0 as stated by the Government Open Data Platform; retain CWA, dataset ID, license, issue time, and provenance
+    download_status: no snapshot downloaded by task 11; fetch-cwa stores credential-free provenance sidecars when an authorized local update is run
+  - id: cwa_penghu_baisha_general_weather
+    title: CWA 澎湖縣未來 3 天鄉鎮一般天氣預報（白沙鄉）
+    kind: official_authenticated_api_with_open_reuse_catalog
+    url: https://opendata.cwa.gov.tw/dataset/all/F-D0047-045
+    catalog_url: https://data.gov.tw/dataset/9285
+    download_url: https://opendata.cwa.gov.tw/api/v1/rest/datastore/F-D0047-045
+    local_path: data/raw/external/cwa/
+    use: exact 澎湖縣／白沙鄉 administrative-area general-weather forecast only; never a dive-site, marine, tide, current, wave, or safety feed
+    license_status: OGL 1.0 as stated by the Government Open Data Platform; retain CWA, dataset ID, license, issue time, and provenance
+    download_status: no snapshot downloaded by task 11; fetch-cwa stores credential-free provenance sidecars when an authorized local update is run
+  - id: tourism_attraction_open_data
+    title: 景點－觀光資訊資料庫（觀光資料標準 V2.1）
+    kind: official_open_data_archive
+    url: https://www.motc.gov.tw/201506260001/app/govdata_list/view?id=1615&module=&uid=201705110066
+    download_url: https://media.taiwan.net.tw/XMLReleaseAll_public/v2.0/Zh_tw/Attraction-json.zip
+    standard_url: https://media.taiwan.net.tw/Upload/%E8%A7%80%E5%85%89%E8%B3%87%E6%96%99%E6%A8%99%E6%BA%96V2.1.pdf
+    local_path: data/raw/external/tourism/
+    use: manually reviewed, source-linked named dive or snorkeling locations only; never infer sites from general attractions or nearby activities
+    license_status: OGL 1.0 as stated by the Tourism Administration portal; retain the required attribution statement and source metadata
+    download_status: Attraction JSON archive and V2.1 standard retrieved 2026-09-18; archive UpdateTime 2026-09-18T14:30:03+08:00 and SHA-256 are recorded in tourism_dive_site_review.csv
   - id: oca_edna
     title: 臺灣周邊海域環境 DNA 採樣調查資料
     kind: official_open_data

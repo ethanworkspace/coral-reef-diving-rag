@@ -31,6 +31,7 @@ class Settings:
     embedding_model: str
     reranker_model: str
     max_live_data_age_hours: int
+    general_weather_max_data_age_hours: int
 
     @classmethod
     def from_project_root(cls, project_root: Path) -> "Settings":
@@ -38,10 +39,11 @@ class Settings:
         return cls(
             project_root=project_root,
             db_path=project_root / "data" / "processed" / "rag.sqlite",
-            base_url=os.getenv("IAI_BASE_URL", "https://www.iai.nkust.edu.tw/aihub").rstrip("/"),
+            base_url=os.getenv("IAI_BASE_URL", "").rstrip("/"),
             api_key=os.getenv("IAI_API_KEY") or None,
-            chat_model=os.getenv("IAI_CHAT_MODEL", "Furen-omni"),
-            embedding_model=os.getenv("IAI_EMBEDDING_MODEL", "Embedding"),
-            reranker_model=os.getenv("IAI_RERANKER_MODEL", "Furen-reranker"),
+            chat_model=os.getenv("IAI_CHAT_MODEL", ""),
+            embedding_model=os.getenv("IAI_EMBEDDING_MODEL", ""),
+            reranker_model=os.getenv("IAI_RERANKER_MODEL", ""),
             max_live_data_age_hours=int(os.getenv("MAX_LIVE_DATA_AGE_HOURS", "6")),
+            general_weather_max_data_age_hours=int(os.getenv("GENERAL_WEATHER_MAX_DATA_AGE_HOURS", "8")),
         )

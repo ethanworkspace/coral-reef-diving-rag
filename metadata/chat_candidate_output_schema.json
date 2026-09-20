@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/coral-rag/chat-candidate-output/1.0",
+  "title": "Coral RAG future chat candidate output",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "action", "blocks", "external_links", "limitations"],
+  "properties": {
+    "schema_version": {"const": "1.0"},
+    "action": {
+      "enum": ["search_public_summary", "lookup_dive_site", "lookup_nearby_edna", "lookup_general_weather", "link_only", "data_insufficient", "redirect_professional", "refuse", "needs_clarification"]
+    },
+    "blocks": {
+      "type": "array",
+      "maxItems": 12,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["block_id", "text", "citation_ids"],
+        "properties": {
+          "block_id": {"type": "string", "minLength": 1},
+          "text": {"type": "string", "minLength": 1, "maxLength": 600},
+          "citation_ids": {"type": "array", "minItems": 1, "maxItems": 4, "items": {"type": "string", "minLength": 1}}
+        }
+      }
+    },
+    "external_links": {
+      "type": "array",
+      "maxItems": 8,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["citation_id", "url"],
+        "properties": {"citation_id": {"type": "string"}, "url": {"type": "string", "format": "uri"}}
+      }
+    },
+    "limitations": {"type": "array", "items": {"type": "string", "minLength": 1}},
+    "clarification": {"type": "object", "additionalProperties": {"type": ["string", "null"]}}
+  }
+}

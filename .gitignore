@@ -4,11 +4,13 @@
 !.env.example
 *.key
 *.pem
+local/cwa-ca/
 secrets/
 
 # Generated indexes, logs, and large raw data
 data/processed/*.sqlite
 data/processed/*.jsonl
+data/runtime/
 data/raw/external/*
 !data/raw/external/.gitkeep
 # Input documents and images may be copyrighted, personal, or subject to data-use terms.

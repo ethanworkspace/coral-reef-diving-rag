@@ -1,0 +1,54 @@
+{
+  "schema_version": 1,
+  "page_title": "海洋保育知識",
+  "cards": [
+    {
+      "content_id": "conservation-respect-coral-reef",
+      "topic": "尊重珊瑚礁與海洋生物",
+      "title": "把珊瑚礁視為需要保留距離的棲地",
+      "summary": "珊瑚與礁體是許多海洋生物的棲地。以不接觸、不踩踏、不餵食及不帶走生物為原則，可減少人為干擾與破壞。",
+      "source_registry_id": "oca_coral_reef_ecosystem",
+      "source_unit": "海洋委員會海洋保育署",
+      "source_url": "https://www.oca.gov.tw/ch/home.jsp?id=176",
+      "last_verified_at": "2026-09-19",
+      "attribution": "資料來源：海洋委員會海洋保育署；依政府資料開放授權條款第 1 版（OGL 1.0）使用，須保留來源標示。",
+      "limitations": "僅提供一般環境保育觀念，不代表任何地點的管理規定、活動條件或安全判定。"
+    },
+    {
+      "content_id": "conservation-avoid-wildlife-disturbance",
+      "topic": "避免接觸、干擾或破壞海洋環境",
+      "title": "觀察野生動物時降低干擾",
+      "summary": "海洋生物有自己的覓食、繁殖與休息行為。保持距離、不觸碰、不追逐或騷擾，能降低人類活動對牠們的影響。",
+      "source_registry_id": "noaa_hands_to_yourself",
+      "source_unit": "NOAA Office of National Marine Sanctuaries",
+      "source_url": "https://sanctuaries.noaa.gov/wildlife-viewing/hands-to-yourself.html",
+      "last_verified_at": "2026-09-19",
+      "attribution": "資料來源：NOAA Office of National Marine Sanctuaries；依 NOAA 政府文字資訊的 public-domain 政策使用，須標示 NOAA，且不得暗示政府背書。",
+      "limitations": "此為一般野生動物尊重觀念，不是臺灣法規、活動技術、醫療或安全指引。"
+    },
+    {
+      "content_id": "conservation-shallow-reef-habitat",
+      "topic": "認識淺海珊瑚礁棲地的一般生態價值",
+      "title": "淺海珊瑚礁是多種生物共享的棲地",
+      "summary": "珊瑚礁棲地與許多海洋生物的生活相連。避免接觸珊瑚、採取礁體或揚起沉積物，是降低對棲地造成壓力的一般保育觀念。",
+      "source_registry_id": "noaa_shallow_coral_reef_habitat",
+      "source_unit": "NOAA Fisheries",
+      "source_url": "https://www.fisheries.noaa.gov/national/habitat-conservation/shallow-coral-reef-habitat",
+      "last_verified_at": "2026-09-19",
+      "attribution": "資料來源：NOAA Fisheries；依 NOAA 政府文字資訊的 public-domain 政策使用，須標示 NOAA，且不得暗示政府背書。",
+      "limitations": "內容是一般棲地保育背景，不描述特定地點生態狀態、可見生物或活動條件。"
+    },
+    {
+      "content_id": "conservation-reduce-marine-waste",
+      "topic": "降低垃圾與一次性用品對海洋環境的影響",
+      "title": "減少一次性用品與海洋垃圾輸入",
+      "summary": "減少一次性用品、重複使用可用物品並妥善處理廢棄物，是降低垃圾進入海洋環境的日常保育行動。",
+      "source_registry_id": "noaa_shallow_coral_reef_habitat",
+      "source_unit": "NOAA Fisheries",
+      "source_url": "https://www.fisheries.noaa.gov/national/habitat-conservation/shallow-coral-reef-habitat",
+      "last_verified_at": "2026-09-19",
+      "attribution": "資料來源：NOAA Fisheries；依 NOAA 政府文字資訊的 public-domain 政策使用，須標示 NOAA，且不得暗示政府背書。",
+      "limitations": "內容僅為一般環境保育資訊，不構成特定活動、場域管理或安全建議。"
+    }
+  ]
+}

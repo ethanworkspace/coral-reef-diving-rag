@@ -1,0 +1,211 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>潛點地圖｜珊瑚礁研究支援</title>
+  <meta name="description" content="呈現來源可回查之潛點代表點與基本資料。">
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+    crossorigin="anonymous"
+  >
+  <link rel="stylesheet" href="/static/map.css">
+  <script src="/static/edna-query.js" defer></script>
+  <script src="/static/reefcheck-query.js" defer></script>
+  <script src="/static/general-weather-query.js" defer></script>
+  <script
+    src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+    integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+    crossorigin="anonymous"
+    defer
+  ></script>
+  <script src="/static/map.js" defer></script>
+</head>
+<body>
+  <a class="skip-link" href="#site-list-heading">跳到潛點清單</a>
+  <header class="page-header">
+    <div>
+      <p class="eyebrow">經驗證基本資料</p>
+      <h1>潛點地圖</h1>
+      <p>地圖只呈現 API 回傳的潛點代表點與可回查來源。</p>
+    </div>
+    <nav class="header-links" aria-label="頁面導覽">
+      <a class="home-link" href="/">返回首頁</a>
+      <a class="home-link" href="/knowledge">海洋保育知識</a>
+      <a class="home-link" href="/assistant">研究問答</a>
+    </nav>
+  </header>
+
+  <main class="map-layout">
+    <section class="map-column" aria-labelledby="map-heading">
+      <h2 id="map-heading" class="visually-hidden">潛點代表點互動地圖</h2>
+      <div id="map" class="map" role="region" aria-label="潛點代表點互動地圖" tabindex="0">
+        <p class="map-placeholder">地圖函式庫載入中；潛點清單仍可操作。</p>
+      </div>
+      <p id="map-status" class="status-note" role="status" aria-live="polite">地圖函式庫載入中。</p>
+    </section>
+
+    <aside class="information-column" aria-label="潛點基本資訊與清單">
+      <section id="site-detail" class="detail-panel" aria-labelledby="detail-name" tabindex="-1">
+        <p class="eyebrow">基本資訊</p>
+        <h2 id="detail-name">請選擇一個潛點</h2>
+        <p id="detail-prompt">可使用地圖標記或下方文字清單選擇。</p>
+        <dl id="detail-fields" hidden>
+          <div id="region-row" hidden>
+            <dt>行政區</dt>
+            <dd id="region-value"></dd>
+          </div>
+          <div>
+            <dt>代表點座標</dt>
+            <dd id="coordinate-value"></dd>
+          </div>
+          <div>
+            <dt>資料品質</dt>
+            <dd id="quality-value"></dd>
+          </div>
+          <div>
+            <dt>最後核對日期</dt>
+            <dd id="verified-value"></dd>
+          </div>
+          <div>
+            <dt>官方來源</dt>
+            <dd id="source-value"></dd>
+          </div>
+        </dl>
+        <p id="source-link-row" hidden>
+          <a id="source-link" target="_blank" rel="noopener noreferrer">開啟官方來源（新視窗）</a>
+        </p>
+        <p id="source-link-warning" class="field-note" hidden>來源未提供可安全開啟的 HTTPS 連結。</p>
+        <p class="representative-point-notice">此座標為景點代表點，不代表下水入口、活動範圍、合法性或安全條件。</p>
+      </section>
+
+      <section id="edna-panel" class="evidence-panel" aria-labelledby="edna-heading">
+        <p class="eyebrow">使用者主動查詢</p>
+        <h2 id="edna-heading">附近歷史 eDNA 證據</h2>
+        <p>查詢半徑以目前潛點的景點代表點為中心計算；選項只控制查詢距離，不代表科學建議、生態範圍或任何下水判斷。</p>
+        <form id="edna-form" class="evidence-form">
+          <label for="edna-radius">查詢半徑</label>
+          <select id="edna-radius" name="radius_m" disabled>
+            <option value="" selected>請選擇半徑</option>
+            <option value="250">250 公尺</option>
+            <option value="500">500 公尺</option>
+            <option value="1000">1,000 公尺</option>
+            <option value="2500">2,500 公尺</option>
+            <option value="5000">5,000 公尺</option>
+          </select>
+          <button id="edna-submit" type="submit" disabled>查詢附近歷史證據</button>
+        </form>
+        <div id="edna-results-region" aria-busy="false">
+          <p id="edna-status" class="evidence-status" role="status" aria-live="polite">尚未查詢。請先選擇潛點與查詢半徑。</p>
+          <p id="edna-summary" class="evidence-summary" hidden></p>
+          <ol id="edna-results" class="evidence-results"></ol>
+          <nav id="edna-pagination" class="evidence-pagination" aria-label="歷史 eDNA 檢出紀錄分頁" hidden>
+            <button id="edna-previous" type="button">上一頁</button>
+            <span id="edna-range" aria-live="polite"></span>
+            <button id="edna-next" type="button">下一頁</button>
+          </nav>
+        </div>
+        <div class="evidence-limitations" aria-labelledby="edna-limitations-heading">
+          <h3 id="edna-limitations-heading">資料解讀限制與授權</h3>
+          <ul>
+            <li>eDNA 是歷史採樣位置的 DNA 偵測，並非現場目擊或當日生物狀態。</li>
+            <li>距離接近不代表該生物存在於潛點或目前可見。</li>
+            <li>潛點座標是景點代表點，不是入口、活動範圍或採樣位置。</li>
+            <li>結果不能用來判斷合法性、安全性或是否適合下水。</li>
+            <li>使用資料時需保留海洋保育署資料來源與<a href="https://data.gov.tw/license" target="_blank" rel="noopener noreferrer">政府資料開放授權條款第 1 版（OGL 1.0）</a>標示。</li>
+          </ul>
+        </div>
+      </section>
+
+      <section id="reefcheck-panel" class="evidence-panel" aria-labelledby="reefcheck-heading">
+        <p class="eyebrow">使用者主動查詢・本機研究限制</p>
+        <h2 id="reefcheck-heading">附近歷史 Reef Check 目視證據</h2>
+        <p>查詢半徑以潛點代表點為中心計算；它不是調查範圍、入口或活動範圍。</p>
+        <form id="reefcheck-form" class="evidence-form">
+          <label for="reefcheck-radius">查詢半徑</label>
+          <select id="reefcheck-radius" name="radius_m" disabled>
+            <option value="" selected>請選擇半徑</option>
+            <option value="250">250 公尺</option>
+            <option value="500">500 公尺</option>
+            <option value="1000">1,000 公尺</option>
+            <option value="2500">2,500 公尺</option>
+            <option value="5000">5,000 公尺</option>
+          </select>
+          <button id="reefcheck-submit" type="submit" disabled>查詢附近歷史目視證據</button>
+        </form>
+        <div id="reefcheck-results-region" aria-busy="false">
+          <p id="reefcheck-status" class="evidence-status" role="status" aria-live="polite">尚未查詢。請先選擇潛點與查詢半徑。</p>
+          <p id="reefcheck-summary" class="evidence-summary" hidden></p>
+          <ol id="reefcheck-results" class="evidence-results"></ol>
+          <nav id="reefcheck-pagination" class="evidence-pagination" aria-label="Reef Check 結果分頁" hidden>
+            <button id="reefcheck-previous" type="button">上一頁</button>
+            <span id="reefcheck-range" aria-live="polite"></span>
+            <button id="reefcheck-next" type="button">下一頁</button>
+          </nav>
+        </div>
+        <div class="evidence-limitations" aria-labelledby="reefcheck-limitations-heading">
+          <h3 id="reefcheck-limitations-heading">資料解讀、授權與使用限制</h3>
+          <ul>
+            <li>這是歷史 Reef Check 目視調查，不是現場或當日觀測。</li>
+            <li>潛點代表點不是調查位置、入口或活動範圍。</li>
+            <li>空間接近不代表生物目前存在、可見，或與該潛點完全相同。</li>
+            <li>不可用於安全、合法性、適合度或是否可下水判定。</li>
+            <li>僅限已啟用的本機非商業研究使用；不得據此公開部署或商業使用。使用時須保留 Reef Check／TaiBIF 顯名及 <a href="https://creativecommons.org/licenses/by-nc/4.0/" target="_blank" rel="noopener noreferrer">CC BY-NC 4.0</a> 條款。</li>
+          </ul>
+        </div>
+      </section>
+
+      <section id="weather-panel" class="evidence-panel" aria-labelledby="weather-heading">
+        <p class="eyebrow">使用者主動查詢</p>
+        <h2 id="weather-heading">行政區一般天氣預報</h2>
+        <p>僅查詢已由官方行政區名稱明確對應的預報；選擇的範圍以臺灣時區（Asia/Taipei，+08:00）傳送，不代表潛點現場條件。</p>
+        <form id="weather-form" class="evidence-form">
+          <label for="weather-range">預報範圍</label>
+          <select id="weather-range" name="forecast_hours" disabled>
+            <option value="" selected>請選擇預報範圍</option>
+            <option value="24">未來 24 小時</option>
+            <option value="48">未來 48 小時</option>
+            <option value="72">未來 72 小時</option>
+          </select>
+          <button id="weather-submit" type="submit" disabled>查看行政區天氣預報</button>
+        </form>
+        <div id="weather-results-region" aria-busy="false">
+          <p id="weather-status" class="evidence-status" role="status" aria-live="polite">尚未查詢。請先選擇潛點與預報範圍。</p>
+          <p id="weather-query-window" class="evidence-summary" hidden></p>
+          <div id="weather-source-details" class="weather-source-details" hidden></div>
+          <ol id="weather-results" class="evidence-results"></ol>
+        </div>
+        <section class="marine-data-status" aria-labelledby="marine-data-heading">
+          <h3 id="marine-data-heading">海況資料</h3>
+          <p>目前沒有可公開且足以代表此潛點的海況資料。</p>
+        </section>
+        <div class="evidence-limitations" aria-labelledby="weather-limitations-heading">
+          <h3 id="weather-limitations-heading">資料解讀限制與授權</h3>
+          <ul>
+            <li>這是行政區一般天氣預報，不是潛點現場測量。</li>
+            <li>不代表波浪、海流、潮汐、近岸海況或水下狀況。</li>
+            <li>不可單獨用來判斷合法性、安全性或是否適合下水。</li>
+            <li>目前公開且可靠的海況資料不足，因此海況欄位維持「資料不足」，不以天氣預報替代。</li>
+            <li>使用資料時需保留交通部中央氣象署資料來源與<a href="https://data.gov.tw/license" target="_blank" rel="noopener noreferrer">政府資料開放授權條款第 1 版（OGL 1.0）</a>標示。</li>
+          </ul>
+        </div>
+      </section>
+
+      <section class="list-panel" aria-labelledby="site-list-heading">
+        <div class="list-heading-row">
+          <h2 id="site-list-heading">潛點清單</h2>
+          <span id="site-count" class="count" aria-live="polite"></span>
+        </div>
+        <p id="data-status" class="data-status" role="status" aria-live="polite">正在載入潛點資料…</p>
+        <ul id="site-list" class="site-list"></ul>
+      </section>
+    </aside>
+  </main>
+
+  <footer>
+    <p>互動地圖：Leaflet 1.9.4。底圖資料：<a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">© OpenStreetMap contributors</a>。</p>
+  </footer>
+</body>
+</html>

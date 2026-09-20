@@ -1,0 +1,6 @@
+site_id,name,latitude,longitude,county,district,source_name,source_reference,last_verified_at,data_quality
+tourism-attraction-376540000a-000365,石朗潛水區,22.65577,121.47454,臺東縣,綠島鄉,交通部觀光署「景點－觀光資訊資料庫」（觀光資料標準 V2.1）,https://media.taiwan.net.tw/XMLReleaseAll_public/v2.0/Zh_tw/Attraction-json.zip#AttractionID=Attraction_376540000A_000365,2026-09-18,source_verified
+tourism-attraction-376540000a-000367,綠島南寮漁港,22.65791,121.47449,臺東縣,綠島鄉,交通部觀光署「景點－觀光資訊資料庫」（觀光資料標準 V2.1）,https://media.taiwan.net.tw/XMLReleaseAll_public/v2.0/Zh_tw/Attraction-json.zip#AttractionID=Attraction_376540000A_000367,2026-09-18,source_verified
+tourism-attraction-376540000a-000478,柴口浮潛區,22.67739,121.48268,臺東縣,綠島鄉,交通部觀光署「景點－觀光資訊資料庫」（觀光資料標準 V2.1）,https://media.taiwan.net.tw/XMLReleaseAll_public/v2.0/Zh_tw/Attraction-json.zip#AttractionID=Attraction_376540000A_000478,2026-09-18,source_verified
+tourism-attraction-a15010100h-000067,大白沙,22.63722,121.49385,臺東縣,綠島鄉,交通部觀光署「景點－觀光資訊資料庫」（觀光資料標準 V2.1）,https://media.taiwan.net.tw/XMLReleaseAll_public/v2.0/Zh_tw/Attraction-json.zip#AttractionID=Attraction_A15010100H_000067,2026-09-18,source_verified
+tourism-attraction-a15010200h-000004,險礁嶼,23.7118,119.608,澎湖縣,白沙鄉,交通部觀光署「景點－觀光資訊資料庫」（觀光資料標準 V2.1）,https://media.taiwan.net.tw/XMLReleaseAll_public/v2.0/Zh_tw/Attraction-json.zip#AttractionID=Attraction_A15010200H_000004,2026-09-18,source_verified
