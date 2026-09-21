@@ -15,6 +15,7 @@
   <script src="/static/edna-query.js" defer></script>
   <script src="/static/reefcheck-query.js" defer></script>
   <script src="/static/general-weather-query.js" defer></script>
+  <script src="/static/dive-site-profile-query.js" defer></script>
   <script
     src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
     integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
@@ -48,6 +49,75 @@
     </section>
 
     <aside class="information-column" aria-label="潛點基本資訊與清單">
+      <section id="site-profile-drawer" class="profile-drawer" aria-labelledby="profile-drawer-title" tabindex="-1">
+        <div class="profile-drawer-heading">
+          <div>
+            <p class="eyebrow">來源核對介紹</p>
+            <h2 id="profile-drawer-title">潛點資訊抽屜</h2>
+          </div>
+          <button id="profile-toggle" type="button" aria-expanded="true" aria-controls="profile-drawer-content">收合資訊</button>
+        </div>
+        <div id="profile-drawer-content">
+          <p id="profile-status" class="profile-status" role="status" aria-live="polite">請點選地圖標記或潛點清單，以讀取可公開的來源核對介紹。</p>
+          <div id="profile-details" hidden>
+            <section class="profile-section profile-media" aria-labelledby="profile-media-heading">
+              <h3 id="profile-media-heading">官方授權圖片／視覺資訊</h3>
+              <div id="profile-media-state" role="status" aria-live="polite">
+                <p>請先選取潛點；沒有通過來源與授權核對的圖片不會顯示。</p>
+              </div>
+            </section>
+            <section class="profile-section" aria-labelledby="profile-basic-heading">
+              <h3 id="profile-basic-heading">基本資料</h3>
+              <dl id="profile-basic-fields"></dl>
+            </section>
+
+            <section class="profile-section" aria-labelledby="profile-introduction-heading">
+              <h3 id="profile-introduction-heading">官方介紹</h3>
+              <p id="profile-introduction-text"></p>
+              <ul id="profile-introduction-sources" class="profile-sources"></ul>
+            </section>
+
+            <section class="profile-section" aria-labelledby="profile-environment-heading">
+              <h3 id="profile-environment-heading">地理／環境特色</h3>
+              <p id="profile-environment-text"></p>
+              <ul id="profile-environment-sources" class="profile-sources"></ul>
+            </section>
+
+            <section class="profile-section" aria-labelledby="profile-activity-heading">
+              <h3 id="profile-activity-heading">活動背景</h3>
+              <p id="profile-activity-text"></p>
+              <ul id="profile-activity-sources" class="profile-sources"></ul>
+            </section>
+
+            <section class="profile-section profile-evidence-links" aria-labelledby="profile-evidence-heading">
+              <h3 id="profile-evidence-heading">研究證據入口與資料狀態</h3>
+              <div class="profile-evidence-entry">
+                <h4>歷史 eDNA</h4>
+                <p id="profile-edna-status"></p>
+                <ul id="profile-edna-sources" class="profile-sources"></ul>
+                <button id="profile-to-edna" type="button" disabled>前往歷史 eDNA 手動查詢</button>
+              </div>
+              <div class="profile-evidence-entry">
+                <h4>Reef Check</h4>
+                <p id="profile-reefcheck-status"></p>
+                <ul id="profile-reefcheck-sources" class="profile-sources"></ul>
+                <button id="profile-to-reefcheck" type="button" disabled>前往 Reef Check 手動查詢</button>
+              </div>
+              <div class="profile-evidence-entry">
+                <h4>天氣與海況</h4>
+                <p id="profile-weather-status">行政區一般天氣僅能在有新鮮快照時，透過下方既有手動查詢區取得；它不是海況或潛點現場天氣。目前沒有可公開且足以代表此潛點的海況資料。</p>
+                <button id="profile-to-weather" type="button" disabled>前往行政區天氣手動查詢</button>
+              </div>
+            </section>
+
+            <section class="profile-section" aria-labelledby="profile-limitations-heading">
+              <h3 id="profile-limitations-heading">資料限制</h3>
+              <ul id="profile-limitations" class="profile-limitations"></ul>
+            </section>
+          </div>
+        </div>
+      </section>
+
       <section id="site-detail" class="detail-panel" aria-labelledby="detail-name" tabindex="-1">
         <p class="eyebrow">基本資訊</p>
         <h2 id="detail-name">請選擇一個潛點</h2>

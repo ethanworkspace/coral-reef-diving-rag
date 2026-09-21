@@ -1,0 +1,219 @@
+{
+  "schema_version": "1.0",
+  "last_verified_at": "2026-09-21",
+  "scope": "僅限 data/curated/dive_sites.csv 中五筆 source_verified 景點代表點。這是來源稽核草稿，不是 API、地圖內容或活動判定。",
+  "profile_policy": {
+    "summary_rule": "只有 source registry 中 decision=adopted 且 may_publicly_summarize=yes、may_be_used_in_map_profile=yes 的來源可支持介紹、特色或活動背景文字。",
+    "representation_limit": "代表點不是入口、活動範圍、調查位置、安全位置或合法性結論。",
+    "research_evidence_limit": "eDNA 與 Reef Check 僅為可依條件查詢的歷史研究證據；空間接近不等於目前生物存在或可見。Reef Check 僅限明確啟用的本機非商業研究模式。",
+    "protected_area_limit": "保護區邊界不可因與代表點接近而自動連結為該潛點的管理、合法性或活動結論。"
+  },
+  "profiles": [
+    {
+      "site_id": "tourism-attraction-376540000a-000365",
+      "name": "石朗潛水區",
+      "official_attraction_id": "Attraction_376540000A_000365",
+      "official_introduction": {
+        "text": "官方景點資料將石朗海域描述為綠島三大潛水區之一。",
+        "source_registry_ids": ["profile-tourism-376540000a-000365"]
+      },
+      "geographic_environment_features": {
+        "text": "原始官方介紹描述其位於綠島西岸沿海，並提及靠近南寮村與南寮漁港。",
+        "source_registry_ids": ["profile-tourism-376540000a-000365"]
+      },
+      "public_activity_background": {
+        "text": "原始景點介紹同時提及潛水與浮潛活動背景；此處不構成活動建議或現場條件說明。",
+        "source_registry_ids": ["profile-tourism-376540000a-000365"]
+      },
+      "research_evidence_index": {
+        "edna": {
+          "availability": "可依潛點代表點、半徑與分頁查詢附近歷史 eDNA 證據。",
+          "source_catalog_id": "oca_edna",
+          "source_registry_ids": ["profile-evidence-oca-edna"],
+          "limitations": "eDNA 是歷史採樣位置的 DNA 偵測，不是現場目擊或目前可見生物；距離接近不等於生物存在於此代表點。"
+        },
+        "reef_check": {
+          "availability": "僅在明確啟用本機非商業研究模式時，可依半徑查詢附近歷史 Reef Check 目視調查。",
+          "source_catalog_id": "taibif_reefcheck",
+          "source_registry_ids": ["profile-evidence-taibif-reefcheck"],
+          "limitations": "資料為歷史目視調查，須保留 Reef Check／TaiBIF 顯名與 CC BY-NC 4.0；不可公開部署或商業使用。"
+        },
+        "marine_protected_areas": {
+          "availability": "資料不足：本草稿未將保護區邊界與此代表點自動連結。",
+          "source_catalog_id": "mpa_boundaries_wfs",
+          "source_registry_ids": ["profile-evidence-mpa-boundaries"],
+          "limitations": "保護區範圍與現行公告必須另行逐區查核，不能用作活動合法性或條件結論。"
+        }
+      },
+      "source_registry_ids": ["profile-tourism-376540000a-000365"],
+      "last_verified_at": "2026-09-21",
+      "attribution": "交通部觀光署、景點－觀光資訊資料庫（觀光資料標準 V2.1）；政府資料開放授權條款第 1 版。",
+      "limitations": "只提供來源支持的景點介紹與代表點背景；不含入口、撤退點、深度、難度、能見度、潮流、安全、合法性或推薦。"
+    },
+    {
+      "site_id": "tourism-attraction-376540000a-000367",
+      "name": "綠島南寮漁港",
+      "official_attraction_id": "Attraction_376540000A_000367",
+      "official_introduction": {
+        "text": "官方景點資料描述南寮漁港以南為連綿、緩傾入海的珊瑚礁海岸。",
+        "source_registry_ids": ["profile-tourism-376540000a-000367"]
+      },
+      "geographic_environment_features": {
+        "text": "原始介紹提及海底珊瑚礁，以及退潮時可見的石蓴與潮池礁岩環境。",
+        "source_registry_ids": ["profile-tourism-376540000a-000367"]
+      },
+      "public_activity_background": {
+        "text": "原始景點介紹含潛水與浮潛背景；本草稿不將其改寫為即時生物、活動條件或建議。",
+        "source_registry_ids": ["profile-tourism-376540000a-000367"]
+      },
+      "research_evidence_index": {
+        "edna": {
+          "availability": "可依潛點代表點、半徑與分頁查詢附近歷史 eDNA 證據。",
+          "source_catalog_id": "oca_edna",
+          "source_registry_ids": ["profile-evidence-oca-edna"],
+          "limitations": "eDNA 是歷史採樣位置的 DNA 偵測，不是現場目擊或目前可見生物；距離接近不等於生物存在於此代表點。"
+        },
+        "reef_check": {
+          "availability": "僅在明確啟用本機非商業研究模式時，可依半徑查詢附近歷史 Reef Check 目視調查。",
+          "source_catalog_id": "taibif_reefcheck",
+          "source_registry_ids": ["profile-evidence-taibif-reefcheck"],
+          "limitations": "資料為歷史目視調查，須保留 Reef Check／TaiBIF 顯名與 CC BY-NC 4.0；不可公開部署或商業使用。"
+        },
+        "marine_protected_areas": {
+          "availability": "資料不足：本草稿未將保護區邊界與此代表點自動連結。",
+          "source_catalog_id": "mpa_boundaries_wfs",
+          "source_registry_ids": ["profile-evidence-mpa-boundaries"],
+          "limitations": "保護區範圍與現行公告必須另行逐區查核，不能用作活動合法性或條件結論。"
+        }
+      },
+      "source_registry_ids": ["profile-tourism-376540000a-000367"],
+      "last_verified_at": "2026-09-21",
+      "attribution": "交通部觀光署、景點－觀光資訊資料庫（觀光資料標準 V2.1）；政府資料開放授權條款第 1 版。",
+      "limitations": "只提供來源支持的景點介紹與代表點背景；不含入口、撤退點、深度、難度、能見度、潮流、安全、合法性或推薦。"
+    },
+    {
+      "site_id": "tourism-attraction-376540000a-000478",
+      "name": "柴口浮潛區",
+      "official_attraction_id": "Attraction_376540000A_000478",
+      "official_introduction": {
+        "text": "官方景點資料說明「柴口」一名源於早期歷史名稱的演變。",
+        "source_registry_ids": ["profile-tourism-376540000a-000478"]
+      },
+      "geographic_environment_features": {
+        "text": null,
+        "data_status": "資料不足：原始開放資料未提供可在本草稿公開摘要的地理／環境特色。",
+        "source_registry_ids": []
+      },
+      "public_activity_background": {
+        "text": "官方景點名稱與原始介紹均提及浮潛區背景；本草稿不將其轉為現行管理、活動資格或建議。",
+        "source_registry_ids": ["profile-tourism-376540000a-000478"]
+      },
+      "research_evidence_index": {
+        "edna": {
+          "availability": "可依潛點代表點、半徑與分頁查詢附近歷史 eDNA 證據。",
+          "source_catalog_id": "oca_edna",
+          "source_registry_ids": ["profile-evidence-oca-edna"],
+          "limitations": "eDNA 是歷史採樣位置的 DNA 偵測，不是現場目擊或目前可見生物；距離接近不等於生物存在於此代表點。"
+        },
+        "reef_check": {
+          "availability": "僅在明確啟用本機非商業研究模式時，可依半徑查詢附近歷史 Reef Check 目視調查。",
+          "source_catalog_id": "taibif_reefcheck",
+          "source_registry_ids": ["profile-evidence-taibif-reefcheck"],
+          "limitations": "資料為歷史目視調查，須保留 Reef Check／TaiBIF 顯名與 CC BY-NC 4.0；不可公開部署或商業使用。"
+        },
+        "marine_protected_areas": {
+          "availability": "資料不足：本草稿未將保護區邊界與此代表點自動連結。",
+          "source_catalog_id": "mpa_boundaries_wfs",
+          "source_registry_ids": ["profile-evidence-mpa-boundaries"],
+          "limitations": "保護區範圍與現行公告必須另行逐區查核，不能用作活動合法性或條件結論。"
+        }
+      },
+      "source_registry_ids": ["profile-tourism-376540000a-000478"],
+      "last_verified_at": "2026-09-21",
+      "attribution": "交通部觀光署、景點－觀光資訊資料庫（觀光資料標準 V2.1）；政府資料開放授權條款第 1 版。",
+      "limitations": "只提供來源支持的景點介紹與代表點背景；不含入口、撤退點、深度、難度、能見度、潮流、安全、合法性或推薦。"
+    },
+    {
+      "site_id": "tourism-attraction-a15010100h-000067",
+      "name": "大白沙",
+      "official_attraction_id": "Attraction_A15010100H_000067",
+      "official_introduction": {
+        "text": "官方景點資料將大白沙描述為綠島著名的浮潛地點之一。",
+        "source_registry_ids": ["profile-tourism-a15010100h-000067"]
+      },
+      "geographic_environment_features": {
+        "text": "原始介紹描述其位在綠島南端突出的西南角，白沙灘由珊瑚碎屑及貝殼碎屑組成。",
+        "source_registry_ids": ["profile-tourism-a15010100h-000067"]
+      },
+      "public_activity_background": {
+        "text": "原始介紹含浮潛地點背景；本草稿不將景點文字轉為活動建議或現場條件。",
+        "source_registry_ids": ["profile-tourism-a15010100h-000067"]
+      },
+      "research_evidence_index": {
+        "edna": {
+          "availability": "可依潛點代表點、半徑與分頁查詢附近歷史 eDNA 證據。",
+          "source_catalog_id": "oca_edna",
+          "source_registry_ids": ["profile-evidence-oca-edna"],
+          "limitations": "eDNA 是歷史採樣位置的 DNA 偵測，不是現場目擊或目前可見生物；距離接近不等於生物存在於此代表點。"
+        },
+        "reef_check": {
+          "availability": "僅在明確啟用本機非商業研究模式時，可依半徑查詢附近歷史 Reef Check 目視調查。",
+          "source_catalog_id": "taibif_reefcheck",
+          "source_registry_ids": ["profile-evidence-taibif-reefcheck"],
+          "limitations": "資料為歷史目視調查，須保留 Reef Check／TaiBIF 顯名與 CC BY-NC 4.0；不可公開部署或商業使用。"
+        },
+        "marine_protected_areas": {
+          "availability": "資料不足：本草稿未將保護區邊界與此代表點自動連結。",
+          "source_catalog_id": "mpa_boundaries_wfs",
+          "source_registry_ids": ["profile-evidence-mpa-boundaries"],
+          "limitations": "保護區範圍與現行公告必須另行逐區查核，不能用作活動合法性或條件結論。"
+        }
+      },
+      "source_registry_ids": ["profile-tourism-a15010100h-000067"],
+      "last_verified_at": "2026-09-21",
+      "attribution": "交通部觀光署、景點－觀光資訊資料庫（觀光資料標準 V2.1）；政府資料開放授權條款第 1 版。",
+      "limitations": "只提供來源支持的景點介紹與代表點背景；不含入口、撤退點、深度、難度、能見度、潮流、安全、合法性或推薦。"
+    },
+    {
+      "site_id": "tourism-attraction-a15010200h-000004",
+      "name": "險礁嶼",
+      "official_attraction_id": "Attraction_A15010200H_000004",
+      "official_introduction": {
+        "text": "官方景點資料描述險礁嶼位於吉貝嶼南方。",
+        "source_registry_ids": ["profile-tourism-a15010200h-000004"]
+      },
+      "geographic_environment_features": {
+        "text": "原始介紹描述北側及東北側由岩石及珊瑚淺坪組成；東南、西南及南側有由貝殼和珊瑚碎屑形成的沙灘。",
+        "source_registry_ids": ["profile-tourism-a15010200h-000004"]
+      },
+      "public_activity_background": {
+        "text": "原始景點介紹含浮潛背景；本草稿不將景點文字轉為活動建議、現場條件或風險結論。",
+        "source_registry_ids": ["profile-tourism-a15010200h-000004"]
+      },
+      "research_evidence_index": {
+        "edna": {
+          "availability": "可依潛點代表點、半徑與分頁查詢附近歷史 eDNA 證據。",
+          "source_catalog_id": "oca_edna",
+          "source_registry_ids": ["profile-evidence-oca-edna"],
+          "limitations": "eDNA 是歷史採樣位置的 DNA 偵測，不是現場目擊或目前可見生物；距離接近不等於生物存在於此代表點。"
+        },
+        "reef_check": {
+          "availability": "僅在明確啟用本機非商業研究模式時，可依半徑查詢附近歷史 Reef Check 目視調查。",
+          "source_catalog_id": "taibif_reefcheck",
+          "source_registry_ids": ["profile-evidence-taibif-reefcheck"],
+          "limitations": "資料為歷史目視調查，須保留 Reef Check／TaiBIF 顯名與 CC BY-NC 4.0；不可公開部署或商業使用。"
+        },
+        "marine_protected_areas": {
+          "availability": "資料不足：本草稿未將保護區邊界與此代表點自動連結。",
+          "source_catalog_id": "mpa_boundaries_wfs",
+          "source_registry_ids": ["profile-evidence-mpa-boundaries"],
+          "limitations": "保護區範圍與現行公告必須另行逐區查核，不能用作活動合法性或條件結論。"
+        }
+      },
+      "source_registry_ids": ["profile-tourism-a15010200h-000004"],
+      "last_verified_at": "2026-09-21",
+      "attribution": "交通部觀光署、景點－觀光資訊資料庫（觀光資料標準 V2.1）；政府資料開放授權條款第 1 版。",
+      "limitations": "只提供來源支持的景點介紹與代表點背景；不含入口、撤退點、深度、難度、能見度、潮流、安全、合法性或推薦。"
+    }
+  ]
+}

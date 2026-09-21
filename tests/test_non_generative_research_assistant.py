@@ -43,6 +43,8 @@ class NonGenerativeResearchAssistantTests(unittest.TestCase):
         paths = {route.path for route in web.app.routes}
         self.assertIn("/assistant", paths)
         self.assertIn("/api/research-assistant/query", paths)
+        self.assertIn("/api/research-chat", paths)
+        self.assertIn("/api/research-chat/status", paths)
 
     def test_high_risk_link_only_and_clarification_use_router_without_retrieval(self) -> None:
         with patch("coral_rag.research_assistant.find_nearby_edna_evidence", side_effect=AssertionError("no eDNA")), patch("coral_rag.research_assistant.find_general_weather_forecast", side_effect=AssertionError("no weather")):
@@ -64,13 +66,19 @@ class NonGenerativeResearchAssistantTests(unittest.TestCase):
         html = (ROOT / "src/coral_rag/templates/assistant.html").read_text(encoding="utf-8")
         js = (ROOT / "src/coral_rag/static/assistant.js").read_text(encoding="utf-8")
         css = (ROOT / "src/coral_rag/static/assistant.css").read_text(encoding="utf-8")
-        self.assertIn("研究問答（非生成式）", html)
+        self.assertIn("研究問答", html)
         self.assertIn("/api/dive-sites", js)
-        self.assertIn("/api/research-assistant/query", js)
+        self.assertIn("/api/research-chat", js)
+        self.assertIn("/api/research-chat/status", js)
+        self.assertIn("use_model", js)
+        self.assertIn("verifiedTurns", js)
+        self.assertIn("Gemini RAG 研究摘要", html + js)
         self.assertIn("Asia/Taipei", js)
         self.assertIn("noopener noreferrer", js)
         self.assertIn("textContent", js)
         self.assertNotIn("innerHTML", js)
+        self.assertNotIn("localStorage", js)
+        self.assertNotIn("sessionStorage", js)
         self.assertIn("@media", css)
         self.assertNotIn("iAI", html + js)
 

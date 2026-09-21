@@ -3,24 +3,27 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>研究問答（非生成式）</title>
+  <title>研究問答</title>
   <link rel="stylesheet" href="/static/assistant.css">
   <script src="/static/assistant.js" defer></script>
 </head>
 <body>
   <a class="skip-link" href="#assistant-form">跳到研究問答</a>
-  <header class="page-header"><div><p class="eyebrow">本機研究工具</p><h1>研究問答（非生成式）</h1><p>本頁不使用生成式模型；結果只由既有資料與安全規則組成。</p></div><nav aria-label="頁面導覽"><a href="/">首頁</a><a href="/map">潛點地圖</a><a href="/knowledge">海洋保育知識</a></nav></header>
+  <header class="page-header"><div><p class="eyebrow">本機研究工具</p><h1>研究問答</h1><p>預設提供非生成式研究證據。Gemini RAG 摘要僅在明確選用、且通過純文字安全檢查時顯示；它不取代專業判斷、官方公告、訓練、醫療或現場評估。</p></div><nav aria-label="主要導覽"><a href="/">首頁</a><a href="/map">潛點地圖</a><a href="/knowledge">海洋保育知識</a></nav></header>
   <main>
-    <section class="notice"><h2>使用限制</h2><p>本頁不取代專業判斷、官方公告、訓練、醫療建議或現場評估。結果不是下水、合法性或安全判定。</p></section>
+    <section class="notice"><h2>研究使用限制</h2><p>系統不提供下水安全、合法性、活動適合度、醫療、救援、技能操作或證照判定。歷史 eDNA 不代表現場可見生物；行政區天氣不是海況或潛點現場量測。</p></section>
     <form id="assistant-form" class="query-card">
-      <label for="question">研究問題</label><textarea id="question" maxlength="500" required aria-describedby="question-help"></textarea><p id="question-help">輸入保育、潛點基本資料、附近歷史 eDNA、行政區天氣或官方公告相關問題。</p>
-      <label for="site">潛點（需要時主動選擇）</label><select id="site"><option value="">不選擇潛點</option></select>
-      <label for="radius">eDNA 查詢半徑（需要時主動選擇）</label><select id="radius"><option value="">不查詢 eDNA</option><option value="250">250 公尺</option><option value="500">500 公尺</option><option value="1000">1,000 公尺</option><option value="2500">2,500 公尺</option><option value="5000">5,000 公尺</option></select>
-      <label for="weather-range">天氣時間範圍（需要時主動選擇）</label><select id="weather-range"><option value="">不查詢天氣</option><option value="24">未來 24 小時</option><option value="48">未來 48 小時</option><option value="72">未來 72 小時</option></select>
+      <label for="question">研究問題</label><textarea id="question" maxlength="800" required aria-describedby="question-help"></textarea><p id="question-help">可查詢保育來源、潛點基本資料、歷史 eDNA 或行政區天氣；若需要潛點、半徑或時間，請一併選擇。</p>
+      <label for="site">潛點（需要時選擇）</label><select id="site"><option value="">不指定潛點</option></select>
+      <label for="radius">eDNA 半徑（需要時選擇）</label><select id="radius"><option value="">不查詢 eDNA</option><option value="250">250 公尺</option><option value="500">500 公尺</option><option value="1000">1,000 公尺</option><option value="2500">2,500 公尺</option><option value="5000">5,000 公尺</option></select>
+      <label for="weather-range">天氣預報範圍（需要時選擇）</label><select id="weather-range"><option value="">不查詢天氣</option><option value="24">未來 24 小時</option><option value="48">未來 48 小時</option><option value="72">未來 72 小時</option></select>
+      <div class="model-toggle"><input type="checkbox" id="use-model" aria-describedby="model-mode-help"><label for="use-model"><strong>Gemini RAG 研究摘要</strong>（需明確勾選；預設為非生成式研究查詢）</label></div>
+      <p id="model-mode-help" class="mode-help">Gemini 只會接收本次受控檢索內容，且只可輸出短篇純文字摘要。來源、HTTPS 連結、核對日期、授權與限制全部由伺服器附加；未通過檢查時會安全回落。</p>
+      <p id="mode-status" role="status" aria-live="polite">正在確認可用模式…</p>
       <button type="submit">查詢研究證據</button>
     </form>
-    <section id="assistant-status" role="status" aria-live="polite">尚未查詢；不會保存問題或結果。</section>
-    <section id="assistant-result" hidden aria-live="polite"><p id="result-label" class="label"></p><h2 id="result-heading">研究結果</h2><p id="result-message"></p><div id="records" class="records"></div><div id="citations" class="citations"></div><div id="links" class="citations"></div><section class="limitations"><h3>資料限制</h3><ul id="limitations"></ul></section></section>
+    <section id="assistant-status" role="status" aria-live="polite">請輸入問題後查詢；不會儲存問題或對話紀錄。</section>
+    <section id="assistant-result" hidden aria-live="polite"><p id="result-label" class="label"></p><h2 id="result-heading">研究結果</h2><p id="result-message"></p><div id="model-blocks" class="model-blocks"></div><div id="records" class="records"></div><div id="citations" class="citations"></div><div id="links" class="citations"></div><section id="verified-turns" class="verified-turns" hidden aria-label="本頁暫存的 Gemini 摘要"><h3>本頁暫存的 Gemini RAG 摘要</h3><p>僅保留最多兩則已通過檢查的顯示內容，重新整理頁面即清除；不使用瀏覽器儲存空間或伺服器聊天紀錄。</p><div id="verified-turn-list"></div></section><section class="limitations"><h3>資料限制</h3><ul id="limitations"></ul></section></section>
   </main>
 </body>
 </html>

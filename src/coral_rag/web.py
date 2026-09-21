@@ -17,6 +17,8 @@ from .iai import IAIClient, IAIError
 from .general_weather import GeneralWeatherError, find_general_weather_forecast
 from .full_text import search_with_policy
 from .knowledge import load_conservation_cards, render_conservation_cards
+from .dive_site_profiles import ProfileDataError, load_profile_catalog, profile_api_payload
+from .dive_site_media import MediaManifestError, load_media_catalog, media_api_payload
 from .marine_forecast import ForecastError, find_marine_forecast, utc_now
 from .nearby_edna import DEFAULT_LIMIT, MAX_LIMIT, MAX_OFFSET, MAX_RADIUS_M, find_nearby_edna_evidence
 from .nearby_reef_check import (
@@ -28,6 +30,7 @@ from .query import answer, retrieve
 from .settings import Settings
 from .store import FTSIndexNotReadyError, FTSUnavailableError, KnowledgeStore
 from .research_assistant import run_research_assistant
+from .research_chat import remaining_model_calls, run_research_chat
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -49,6 +52,11 @@ class ResearchAssistantRequest(BaseModel):
     radius_m: int | None = Field(default=None, ge=1, le=MAX_RADIUS_M)
     start_at: str | None = Field(default=None, min_length=20, max_length=40)
     end_at: str | None = Field(default=None, min_length=20, max_length=40)
+
+
+class ResearchChatRequest(ResearchAssistantRequest):
+    question: str = Field(min_length=2, max_length=800)
+    use_model: bool = Field(default=False, description="Explicit opt-in to the local Gemini research-chat mode")
 
 
 def _table_count(connection: sqlite3.Connection, table: str) -> int:
@@ -147,6 +155,38 @@ def get_dive_site(site_id: str) -> dict:
     if row is None:
         raise HTTPException(status_code=404, detail="Dive site not found")
     return _dive_site_payload(row)
+
+
+@app.get("/api/dive-sites/{site_id}/profile")
+def get_dive_site_profile(site_id: str) -> JSONResponse:
+    """Return a source-approved static profile without reading biological, weather, or marine tables."""
+    site = get_dive_site(site_id)
+    try:
+        catalog = load_profile_catalog(ROOT)
+        payload = profile_api_payload(site, catalog)
+    except ProfileDataError:
+        return JSONResponse(
+            {"status": "profile_data_unavailable", "reason": "profile_source_validation_failed"},
+            status_code=503,
+            headers={"Cache-Control": "no-store"},
+        )
+    if payload.get("status") != "available":
+        payload["media"] = {
+            "status": "unavailable", "reason": "no_approved_profile_for_site",
+            "message": "目前沒有可公開展示的官方圖片。", "image": None,
+            "license_attribution": "官方媒體再利用權利尚未確認。", "last_verified_at": None,
+        }
+        return JSONResponse(payload, headers={"Cache-Control": "no-store"})
+    try:
+        media_catalog = load_media_catalog(ROOT, catalog.profiles)
+    except MediaManifestError:
+        return JSONResponse(
+            {"status": "profile_data_unavailable", "reason": "profile_source_validation_failed"},
+            status_code=503,
+            headers={"Cache-Control": "no-store"},
+        )
+    payload["media"] = media_api_payload(site_id, media_catalog)
+    return JSONResponse(payload, headers={"Cache-Control": "no-store"})
 
 
 @app.get("/api/dive-sites/{site_id}/nearby-edna")
@@ -311,6 +351,34 @@ def research_assistant_query(request: ResearchAssistantRequest) -> JSONResponse:
     payload = run_research_assistant(
         ROOT, _dive_sites_database(), _rag_database(), question=request.question,
         site_id=request.site_id, radius_m=request.radius_m, start_at=request.start_at, end_at=request.end_at,
+    )
+    return JSONResponse(payload, headers={"Cache-Control": "no-store"})
+
+
+@app.get("/api/research-chat/status")
+def research_chat_status() -> JSONResponse:
+    """Local, secret-free mode status: Gemini configuration presence and budget."""
+    from .chat_model import load_gemini_live_configuration
+
+    configuration, configuration_error = load_gemini_live_configuration(ROOT)
+    return JSONResponse(
+        {
+            "mode_name": "gemini",
+            "status": "ready" if configuration is not None else (configuration_error or "provider_configuration_missing"),
+            "quota_remaining": remaining_model_calls(),
+            "model_called_only_when_explicit": True,
+        },
+        headers={"Cache-Control": "no-store"},
+    )
+
+
+@app.post("/api/research-chat")
+def research_chat(request: ResearchChatRequest) -> JSONResponse:
+    """Local Gemini research chat; the model is called only after explicit opt-in and a gate check."""
+    payload = run_research_chat(
+        ROOT, _dive_sites_database(), _rag_database(), question=request.question,
+        use_model=request.use_model, site_id=request.site_id, radius_m=request.radius_m,
+        start_at=request.start_at, end_at=request.end_at,
     )
     return JSONResponse(payload, headers={"Cache-Control": "no-store"})
 

@@ -8,6 +8,17 @@
 
 探測不保存模型文字、response body、headers、設定、API Key、Token、模型名稱、完整 endpoint 或聊天紀錄；CLI 只輸出請求數、非敏感狀態分類、HTTPS 連線狀態、固定 JSON 是否通過及下一步代碼。
 
+## 任務 41：最終受控探測紀錄
+
+- 執行日期：2026-09-21（Asia/Taipei）。
+- 是否進入網路探測：是。
+- 實際 chat completion 請求數：1（硬上限為 1，未重試）。
+- 安全結果：`provider_endpoint_unavailable`；HTTPS 連線已建立，服務回應既有設定所指的 chat completion 端點不可用。此結果無法獨立確認認證或模型可用性。
+- 固定 JSON：未取得可解析的回應，因此 `fixed_json_valid` 為未確認。
+- 是否可進入任務 42：否。必須由使用者在高科 iAI 後台核對 API Base 設定的版本／路徑與帳號可用的 chat 服務，並在設定修正後另行明確授權新的單次探測。
+
+此紀錄不包含設定值、完整端點、請求標頭、回應原文、模型輸出或任何秘密。
+
 ## 結果解讀
 
 | 狀態 | 意義 | 下一步 |

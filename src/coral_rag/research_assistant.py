@@ -9,6 +9,7 @@ from typing import Any
 from urllib.parse import urlparse
 
 from .chat_router import ChatRequest, ControlledContext, assemble_controlled_context, route_chat_request, source_status_by_id
+from .dive_site_profiles import ProfileDataError, load_profile_catalog, profile_api_payload
 from .full_text import load_source_registry_by_id, search_with_policy, source_status
 from .general_weather import GeneralWeatherError, find_general_weather_forecast
 from .nearby_edna import find_nearby_edna_evidence
@@ -117,6 +118,72 @@ def _base(plan: object, *, presentation: str, context: ControlledContext | None 
     }
 
 
+def resolve_research_context(
+    project_root: Path,
+    structured_database: Path,
+    rag_database: Path,
+    *,
+    question: str,
+    site_id: str | None = None,
+    radius_m: int | None = None,
+    start_at: str | None = None,
+    end_at: str | None = None,
+    now: datetime | None = None,
+) -> tuple[Any, ControlledContext | None, str, list[dict[str, str | None]]]:
+    """Resolve the shared fixed presentation or a ready controlled context.
+
+    Returns ``(plan, context, presentation_key, official_links)``.  The caller
+    decides whether a ready context may be handed to a provider.
+    """
+    request = ChatRequest(question=question, site_id=site_id, radius_m=radius_m, start_at=start_at, end_at=end_at)
+    plan = route_chat_request(request, source_status_by_id(project_root))
+    if plan.action in {"refuse", "redirect_professional", "data_insufficient"}:
+        return plan, None, plan.action, []
+    if plan.action == "link_only":
+        return plan, None, "link_only", _safe_links(project_root, plan.source_whitelist)
+    if plan.action == "needs_clarification":
+        return plan, None, "needs_clarification", []
+    if plan.action == "lookup_dive_site" and not site_id:
+        return plan, None, "needs_clarification", []
+    try:
+        if plan.action == "search_public_summary":
+            if not rag_database.exists():
+                return plan, None, "data_insufficient", []
+            store = KnowledgeStore(rag_database, initialize=False)
+            try:
+                context = assemble_controlled_context(plan, fts_payload=search_with_policy(store, project_root, question, limit=5))
+            finally:
+                store.close()
+        elif plan.action == "lookup_dive_site":
+            site_payload = _site_payload(structured_database, site_id or "")
+            if site_payload is not None:
+                # Profile text has its own strict registry validation.  A bad,
+                # absent, or non-public profile never blocks the underlying
+                # curated dive-site facts and is never inferred from raw data.
+                try:
+                    profile_payload = profile_api_payload(site_payload, load_profile_catalog(project_root))
+                    if profile_payload.get("status") == "available" and isinstance(profile_payload.get("profile"), dict):
+                        site_payload["profile"] = profile_payload["profile"]
+                except ProfileDataError:
+                    pass
+            context = assemble_controlled_context(plan, dive_site_payload=site_payload)
+        elif plan.action == "lookup_nearby_edna":
+            context = assemble_controlled_context(plan, edna_payload=find_nearby_edna_evidence(structured_database, site_id or "", radius_m or 0, limit=10))
+        elif plan.action == "lookup_general_weather":
+            payload = find_general_weather_forecast(
+                structured_database, project_root / "data" / "raw" / "external" / "cwa", site_id or "", start_at or "", end_at or "",
+                now=now or datetime.now(timezone.utc), max_age_hours=8,
+            )
+            context = assemble_controlled_context(plan, weather_payload=payload)
+        else:
+            return plan, None, "data_insufficient", []
+    except (OSError, ValueError, RuntimeError, FTSUnavailableError, FTSIndexNotReadyError, GeneralWeatherError):
+        return plan, None, "data_insufficient", []
+    if context.status != "ready":
+        return plan, context, "data_insufficient", []
+    return plan, context, plan.action, []
+
+
 def run_research_assistant(
     project_root: Path,
     structured_database: Path,
@@ -130,39 +197,8 @@ def run_research_assistant(
     now: datetime | None = None,
 ) -> dict[str, Any]:
     """Return fixed presentation data only; never invoke a provider or persist state."""
-    request = ChatRequest(question=question, site_id=site_id, radius_m=radius_m, start_at=start_at, end_at=end_at)
-    plan = route_chat_request(request, source_status_by_id(project_root))
-    if plan.action in {"refuse", "redirect_professional", "data_insufficient"}:
-        return _base(plan, presentation=plan.action)
-    if plan.action == "link_only":
-        return _base(plan, presentation="link_only", links=_safe_links(project_root, plan.source_whitelist))
-    if plan.action == "needs_clarification":
-        return _base(plan, presentation="needs_clarification")
-    if plan.action == "lookup_dive_site" and not site_id:
-        return _base(plan, presentation="needs_clarification")
-    try:
-        if plan.action == "search_public_summary":
-            if not rag_database.exists():
-                return _base(plan, presentation="data_insufficient")
-            store = KnowledgeStore(rag_database, initialize=False)
-            try:
-                context = assemble_controlled_context(plan, fts_payload=search_with_policy(store, project_root, question, limit=5))
-            finally:
-                store.close()
-        elif plan.action == "lookup_dive_site":
-            context = assemble_controlled_context(plan, dive_site_payload=_site_payload(structured_database, site_id or ""))
-        elif plan.action == "lookup_nearby_edna":
-            context = assemble_controlled_context(plan, edna_payload=find_nearby_edna_evidence(structured_database, site_id or "", radius_m or 0, limit=10))
-        elif plan.action == "lookup_general_weather":
-            payload = find_general_weather_forecast(
-                structured_database, project_root / "data" / "raw" / "external" / "cwa", site_id or "", start_at or "", end_at or "",
-                now=now or datetime.now(timezone.utc), max_age_hours=8,
-            )
-            context = assemble_controlled_context(plan, weather_payload=payload)
-        else:
-            return _base(plan, presentation="data_insufficient")
-    except (OSError, ValueError, RuntimeError, FTSUnavailableError, FTSIndexNotReadyError, GeneralWeatherError):
-        return _base(plan, presentation="data_insufficient")
-    if context.status != "ready":
-        return _base(plan, presentation="data_insufficient", context=context)
-    return _base(plan, presentation=plan.action, context=context)
+    plan, context, presentation, links = resolve_research_context(
+        project_root, structured_database, rag_database, question=question,
+        site_id=site_id, radius_m=radius_m, start_at=start_at, end_at=end_at, now=now,
+    )
+    return _base(plan, presentation=presentation, context=context, links=links)

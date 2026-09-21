@@ -218,7 +218,7 @@ def _restricted_plan(question: str, source_status: dict[str, str]) -> Processing
 def route_chat_request(request: ChatRequest, source_status: dict[str, str] | None = None) -> ProcessingPlan:
     """Classify a request conservatively before any retrieval or context assembly."""
     question = _normalise(request.question)
-    if not question or len(question) > 500:
+    if not question or len(question) > 800:
         return _plan("unknown", "medium", "needs_clarification", reasons=("invalid_question",))
     if _has(question, SECURITY_PATTERNS):
         return _plan(
@@ -391,7 +391,33 @@ def assemble_controlled_context(
         }
         source = dive_site_payload["source"]
         citation = _citation({"name": source.get("name"), "reference": source.get("reference"), "last_verified_at": dive_site_payload.get("last_verified_at")})
-        return ControlledContext("ready", plan, _within_context_budget([allowed]), (citation,) if citation else (), plan.limitation_ids, plan.reason_codes)
+        citations = [citation] if citation else []
+        # A profile is optional and can only be supplied by the separately
+        # validated profile loader.  Accept text sections only when every
+        # attached source is already approved for public summary and HTTPS.
+        profile = dive_site_payload.get("profile")
+        if isinstance(profile, dict):
+            for field in ("official_introduction", "geographic_environment_features", "public_activity_background"):
+                section = profile.get(field)
+                if not isinstance(section, dict) or section.get("status") != "available":
+                    continue
+                section_text = section.get("text")
+                sources = section.get("sources")
+                if not isinstance(section_text, str) or not isinstance(sources, list) or not sources:
+                    continue
+                public_sources = [item for item in sources if isinstance(item, dict) and item.get("public_summary_allowed") is True and _https(item.get("url"))]
+                if len(public_sources) != len(sources):
+                    continue
+                allowed[f"profile_{field}"] = _bounded_value(section_text)
+                for item in public_sources:
+                    profile_citation = {
+                        "source_id": item.get("source_id"), "name": item.get("name"), "url": item.get("url"),
+                        "last_verified_at": item.get("last_verified_at"),
+                        "license_or_terms": item.get("license_and_attribution"),
+                    }
+                    if len(citations) < MAX_CITATIONS:
+                        citations.append(profile_citation)
+        return ControlledContext("ready", plan, _within_context_budget([allowed]), tuple(citations), plan.limitation_ids, plan.reason_codes)
     if plan.action == "lookup_nearby_edna":
         if not isinstance(edna_payload, dict) or edna_payload.get("evidence_type") != "nearby_historical_edna_evidence":
             return _blocked_context(plan, "approved_edna_payload_required")

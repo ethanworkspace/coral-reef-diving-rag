@@ -103,6 +103,31 @@ class ChatRouterTests(unittest.TestCase):
         self.assertEqual(assemble_controlled_context(edna_plan, edna_payload={**edna_payload, "items": []}).status, "empty")
         self.assertEqual(assemble_controlled_context(edna_plan).status, "blocked")
 
+    def test_profile_text_requires_an_approved_https_source(self) -> None:
+        from coral_rag.chat_router import ProcessingPlan
+        plan = ProcessingPlan(
+            category="site_basic", risk_level="low", action="lookup_dive_site", required_inputs=("site_id",),
+            freshness_required=False, allowed_routes=("dive_sites_api",), source_whitelist=(),
+            prohibited_claims=(), limitation_ids=("representative_point_only",), blocked_sources=(),
+            reason_codes=(), model_context_allowed=True,
+        )
+        site = {
+            "id": "site-1", "name": "Site", "latitude": 1, "longitude": 2,
+            "administrative_area": {}, "last_verified_at": "2026-09-21", "data_quality": "source_verified",
+            "source": {"name": "Official", "reference": "https://example.org/site"},
+        }
+        approved_source = {"source_id": "profile-1", "name": "Profile", "url": "https://example.org/profile", "last_verified_at": "2026-09-21", "license_and_attribution": "OGL 1.0", "public_summary_allowed": True}
+        profile = {
+            "official_introduction": {"status": "available", "text": "Approved profile text.", "sources": [approved_source]},
+            "geographic_environment_features": {"status": "data_insufficient", "text": None, "sources": []},
+        }
+        context = assemble_controlled_context(plan, dive_site_payload={**site, "profile": profile})
+        self.assertEqual(context.records[0]["profile_official_introduction"], "Approved profile text.")
+        self.assertNotIn("profile_geographic_environment_features", context.records[0])
+        self.assertIn("profile-1", [citation["source_id"] for citation in context.citations])
+        restricted = {**profile, "official_introduction": {**profile["official_introduction"], "sources": [{**approved_source, "public_summary_allowed": False}]}}
+        self.assertNotIn("profile_official_introduction", assemble_controlled_context(plan, dive_site_payload={**site, "profile": restricted}).records[0])
+
     def test_weather_requires_a_fresh_whitelisted_api_response(self) -> None:
         plan = route_chat_request(ChatRequest(
             "石朗行政區一般天氣預報", site_id=SITE_ID,

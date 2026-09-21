@@ -17,12 +17,25 @@ class PipelineResult:
     provider_called: bool
     validation: CandidateValidationResult | None = None
     failure_codes: tuple[str, ...] = ()
+    _candidate: object | None = None
 
     def as_dict(self) -> dict[str, Any]:
         result = asdict(self)
         # Candidate text, question, context and provider details are never part
         # of the pipeline result, even after a successful validation.
+        result.pop("_candidate", None)
         return result
+
+    @property
+    def candidate(self) -> object | None:
+        """Expose the validator-approved candidate only after a validated run.
+
+        The dereferenced value is what the validator already accepted; it is
+        intentionally absent unless ``status == "validated"``.
+        """
+        if self.status != "validated":
+            return None
+        return self._candidate
 
 
 def _context_size(context: ControlledContext) -> int:
@@ -79,7 +92,9 @@ def run_chat_pipeline(
             "provider_server_error", "provider_request_rejected", "provider_dns_failure", "provider_tls_failure",
             "provider_connection_rejected", "provider_network_error", "provider_models_response_invalid",
             "provider_unknown_error",
-            "provider_response_too_large", "provider_bad_json", "fixture_not_available",
+            "provider_response_too_large", "provider_bad_json", "provider_response_not_json", "provider_candidate_text_not_json",
+            "provider_candidate_not_object", "provider_empty_candidates", "provider_empty_parts", "provider_nontext_content",
+            "provider_unknown_response_envelope", "fixture_not_available",
         } else "provider_unavailable"
         return PipelineResult("failed_closed", plan.action, True, failure_codes=(code,))
     if _candidate_limits_exceeded(provider_result.candidate, limits):
@@ -88,4 +103,4 @@ def run_chat_pipeline(
     validation = validate_candidate_output(plan, context, provider_result.candidate)
     if not validation.accepted:
         return PipelineResult("rejected_output", plan.action, True, validation=validation, failure_codes=validation.rejection_codes)
-    return PipelineResult("validated", plan.action, True, validation=validation)
+    return PipelineResult("validated", plan.action, True, validation=validation, _candidate=provider_result.candidate)

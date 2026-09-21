@@ -145,6 +145,12 @@ uvicorn coral_rag.web:app --host 127.0.0.1 --port 8080
 
 地圖上的座標是觀光署景點的 WGS84 代表點，不是下水入口、活動範圍、採樣點，也不構成合法性或安全條件的判定。
 
+#### 潛點介紹抽屜（來源核對）
+
+在 `/map` 點選地圖標記或潛點文字清單後，才會向 `GET /api/dive-sites/{site_id}/profile` 讀取可公開的來源核對介紹；頁面載入與未選取潛點時不會呼叫此 API。桌面版在地圖右側資訊欄以可收合抽屜呈現，手機版則在地圖下方顯示同一面板。抽屜依序呈現基本資料、官方介紹、地理／環境特色、活動背景、歷史研究證據的手動查詢入口與每段來源。來源連結僅在 HTTPS 時可開啟，並保留維護單位、最後核對日期、授權／顯名與限制。
+
+抽屜中的 eDNA、Reef Check 與行政區天氣按鈕只會將焦點帶往既有手動查詢區，**不會自動發送任何證據或天氣查詢**。Reef Check 仍僅限明確啟用的本機非商業研究模式；行政區天氣不代表海況，海況資料不足時不會以天氣補足。資料不足、`404`、`503` 或網路失敗時，抽屜不保留舊介紹或補寫內容。代表點不是入口、活動範圍或安全位置，頁面不提供深度、潮流、能見度、難度、推薦、下水安全或合法性結論。
+
 ### 海洋保育知識
 
 開啟 `http://127.0.0.1:8080/knowledge`，或由首頁／潛點地圖的「海洋保育知識」入口進入。頁面只呈現經人工稽核、可公開摘要的低風險內容：尊重珊瑚礁與海洋生物、避免干擾或破壞環境、降低垃圾與一次性用品影響，以及淺海珊瑚礁棲地的一般生態價值。每張卡片均提供來源、原始 HTTPS 連結、最後核對日期、顯名方式與適用限制。
@@ -162,6 +168,10 @@ uvicorn coral_rag.web:app --host 127.0.0.1 --port 8080
 ## 不影響既有服務的本機研究版 runtime
 
 需要驗證新版資料庫而不觸碰既有服務時，執行 `scripts/run_local_research.ps1`。它只使用 `data/runtime/research/` 的獨立 SQLite／FTS，先做 raw manifest 唯讀驗證，再在 `127.0.0.1:8081` 前景啟動研究服務；既有 `data/processed` 與 8080 都不會被修改或停止。詳見 [local_research_runtime.md](metadata/local_research_runtime.md)。
+
+### Gemini RAG 研究摘要
+
+`/assistant` 預設仍是非生成式研究查詢。使用者明確選擇「Gemini RAG 研究摘要」時，模型僅接收 router 核准的問題與受控 RAG context，並只輸出短篇繁體中文純文字；來源、HTTPS 原文連結、最後核對日期、授權與限制都由伺服器依本次 context 附加。空值、網址、Markdown、路徑、疑似秘密、提示注入殘留、未受控數字或超長文字會被拒絕並安全回落。高風險、受限、Reef Check、潮位、海況與沒有新鮮快照的天氣不會送往模型。頁面只在記憶體保留最多兩則已顯示摘要，重新整理即清除；不保存聊天紀錄。
 
 容器啟動時會下載可公開再利用的海保署邊界與 eDNA 核心資料，並建立結構化資料庫；不會將使用者檔案、CMAS 受版權內容或 CC BY-NC 的 Reef Check 資料打包進公開映像。若部署主機要更新潮位，請在主機的秘密管理設定 `CWA_API_KEY` 後執行 `coral-rag fetch-cwa --dataset F-A0021-001`。
 
@@ -200,6 +210,15 @@ HTTPS link, last verification date, attribution, and limitation. Only `public_su
 are eligible; source full text, images, and non-approved sources are not indexed through this path.
 `/api/search?q=coral%20reef` and `coral-rag search "coral reef"` remain retrieval-only evidence,
 not generated answers or safety, legality, or activity conclusions.
+
+### 潛點官方圖片
+
+地圖 Profile 抽屜只會顯示通過 `metadata/dive_site_image_manifest.csv` 驗證的受控本機圖片：
+必須對應同一官方 Attraction ID、HTTPS 原始來源、明確授權／顯名、核對日期、檔案 MIME type 與
+SHA-256。瀏覽器只會從 `/static/curated-media/dive-sites/` 載入核准圖片。
+
+目前五個潛點的既有觀光署來源沒有獨立確認媒體再利用權利，因此都會顯示
+「目前沒有可公開展示的官方圖片」，不以 GoOcean、截圖、社群或其他第三方圖片替代。
 
 ## 首頁導覽與功能矩陣
 

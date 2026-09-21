@@ -20,6 +20,7 @@ from .candidate_audit import generate_dive_site_candidate_audit
 from .iai_chat_pilot import evaluate_iai_chat_pilot, evaluate_iai_research_pilot
 from .iai_diagnostics import diagnose_iai_connectivity
 from .iai_chat_probe import probe_iai_chat_protocol
+from .gemini_chat_probe import probe_gemini_chat_protocol
 from .cwa_tls import diagnose_cwa_tls
 from .raw_data_recovery import (
     EXIT_MANIFEST_INVALID,
@@ -208,6 +209,13 @@ def probe_iai_chat_command(args: argparse.Namespace) -> int:
     return 0 if result.status == "chat_protocol_success" else 2
 
 
+def probe_gemini_chat_command(args: argparse.Namespace) -> int:
+    """Perform the sole explicitly confirmed, data-minimized Gemini protocol probe."""
+    result = probe_gemini_chat_protocol(project_root(), confirm_live_gemini=args.confirm_live_gemini)
+    print(json.dumps(result.as_dict(), ensure_ascii=False, sort_keys=True))
+    return 0 if result.status == "chat_protocol_success" else 2
+
+
 def verify_raw_data_command(args: argparse.Namespace) -> int:
     """Read-only raw-input verification; no download, repair, or database activity."""
     if not args.check_only:
@@ -273,6 +281,15 @@ def main() -> int:
         help="allow exactly one fixed, non-streaming chat completion protocol request",
     )
     iai_chat_probe_parser.set_defaults(handler=probe_iai_chat_command)
+    gemini_chat_probe_parser = commands.add_parser(
+        "probe-gemini-chat",
+        help="explicit one-request fixed JSON chat protocol probe for Gemini; never sends project or user data",
+    )
+    gemini_chat_probe_parser.add_argument(
+        "--confirm-live-gemini", action="store_true",
+        help="allow exactly one fixed, non-streaming Gemini chat completion protocol request",
+    )
+    gemini_chat_probe_parser.set_defaults(handler=probe_gemini_chat_command)
     search_parser = commands.add_parser("search", help="FTS5 retrieval with source-status controls; never calls an LLM")
     search_parser.add_argument("query")
     search_parser.add_argument("--limit", type=int, default=10, choices=range(1, 21))

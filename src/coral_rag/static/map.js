@@ -9,6 +9,7 @@
   const ednaTools = globalThis.NearbyEdnaQuery || null;
   const reefCheckTools = globalThis.NearbyReefCheckQuery || null;
   const weatherTools = globalThis.GeneralWeatherQuery || null;
+  const profileTools = globalThis.DiveSiteProfileQuery || null;
   const WEATHER_VALUE_FIELDS = Object.freeze([
     ["weather", "天氣現象"],
     ["temperature", "溫度"],
@@ -42,6 +43,28 @@
     sourceLinkRow: document.getElementById("source-link-row"),
     sourceLink: document.getElementById("source-link"),
     sourceLinkWarning: document.getElementById("source-link-warning"),
+    profileDrawer: document.getElementById("site-profile-drawer"),
+    profileToggle: document.getElementById("profile-toggle"),
+    profileContent: document.getElementById("profile-drawer-content"),
+    profileStatus: document.getElementById("profile-status"),
+    profileDetails: document.getElementById("profile-details"),
+    profileMediaState: document.getElementById("profile-media-state"),
+    profileBasicFields: document.getElementById("profile-basic-fields"),
+    profileIntroductionText: document.getElementById("profile-introduction-text"),
+    profileIntroductionSources: document.getElementById("profile-introduction-sources"),
+    profileEnvironmentText: document.getElementById("profile-environment-text"),
+    profileEnvironmentSources: document.getElementById("profile-environment-sources"),
+    profileActivityText: document.getElementById("profile-activity-text"),
+    profileActivitySources: document.getElementById("profile-activity-sources"),
+    profileEdnaStatus: document.getElementById("profile-edna-status"),
+    profileEdnaSources: document.getElementById("profile-edna-sources"),
+    profileReefCheckStatus: document.getElementById("profile-reefcheck-status"),
+    profileReefCheckSources: document.getElementById("profile-reefcheck-sources"),
+    profileWeatherStatus: document.getElementById("profile-weather-status"),
+    profileLimitations: document.getElementById("profile-limitations"),
+    profileToEdna: document.getElementById("profile-to-edna"),
+    profileToReefCheck: document.getElementById("profile-to-reefcheck"),
+    profileToWeather: document.getElementById("profile-to-weather"),
     ednaPanel: document.getElementById("edna-panel"),
     ednaForm: document.getElementById("edna-form"),
     ednaRadius: document.getElementById("edna-radius"),
@@ -84,6 +107,7 @@
   let ednaBusy = false;
   let reefCheckBusy = false;
   let weatherBusy = false;
+  let profileBusy = false;
   let currentEdnaOffset = 0;
   let currentEdnaNextOffset = null;
   let currentReefCheckOffset = 0;
@@ -91,6 +115,7 @@
   const ednaRequests = ednaTools ? new ednaTools.RequestCoordinator() : null;
   const reefCheckRequests = reefCheckTools ? new reefCheckTools.RequestCoordinator() : null;
   const weatherRequests = weatherTools ? new weatherTools.RequestCoordinator() : null;
+  const profileRequests = profileTools ? new profileTools.RequestCoordinator() : null;
   const markerById = new Map();
   const buttonById = new Map();
 
@@ -860,6 +885,284 @@
     }
   }
 
+  function currentProfileContext() {
+    if (!selectedSite) return null;
+    const siteId = safeText(selectedSite.id, "");
+    return siteId ? { siteId } : null;
+  }
+
+  function setProfileBusy(isBusy) {
+    profileBusy = isBusy;
+    elements.profileDrawer.setAttribute("aria-busy", String(isBusy));
+    elements.profileToggle.disabled = isBusy;
+    updateProfileShortcutControls();
+  }
+
+  function updateProfileShortcutControls() {
+    const disabled = !selectedSite || profileBusy;
+    elements.profileToEdna.disabled = disabled;
+    elements.profileToReefCheck.disabled = disabled;
+    elements.profileToWeather.disabled = disabled;
+  }
+
+  function setProfileDrawerCollapsed(collapsed) {
+    elements.profileContent.hidden = collapsed;
+    elements.profileToggle.setAttribute("aria-expanded", String(!collapsed));
+    elements.profileToggle.textContent = collapsed ? "展開資訊" : "收合資訊";
+  }
+
+  function clearProfileSources(list) {
+    list.replaceChildren();
+  }
+
+  function clearProfileDisplay() {
+    elements.profileDetails.hidden = true;
+    elements.profileMediaState.replaceChildren();
+    const mediaWaiting = document.createElement("p");
+    mediaWaiting.textContent = "正在切換潛點；未顯示任何圖片。";
+    elements.profileMediaState.append(mediaWaiting);
+    elements.profileBasicFields.replaceChildren();
+    elements.profileIntroductionText.textContent = "";
+    elements.profileEnvironmentText.textContent = "";
+    elements.profileActivityText.textContent = "";
+    elements.profileEdnaStatus.textContent = "";
+    elements.profileReefCheckStatus.textContent = "";
+    elements.profileLimitations.replaceChildren();
+    [
+      elements.profileIntroductionSources,
+      elements.profileEnvironmentSources,
+      elements.profileActivitySources,
+      elements.profileEdnaSources,
+      elements.profileReefCheckSources,
+    ].forEach(clearProfileSources);
+  }
+
+  function appendProfileSource(list, source) {
+    if (!source || typeof source !== "object") return;
+    const item = document.createElement("li");
+    const heading = document.createElement("strong");
+    heading.textContent = safeText(source.name);
+    const fields = document.createElement("dl");
+    appendEvidenceField(fields, "維護單位", source.maintainer);
+    appendEvidenceField(fields, "最後核對日期", source.last_verified_at);
+    appendEvidenceField(fields, "授權／顯名", source.license_and_attribution);
+    appendEvidenceField(fields, "來源限制", source.limitations);
+    appendEvidenceField(fields, "原始來源", createSafeLink("開啟原始 HTTPS 來源", source.url));
+    item.append(heading, fields);
+    list.append(item);
+  }
+
+  function renderProfileSources(list, sources) {
+    clearProfileSources(list);
+    if (!Array.isArray(sources)) return;
+    sources.forEach((source) => appendProfileSource(list, source));
+  }
+
+  function renderProfileMedia(media) {
+    const value = media && typeof media === "object" ? media : {};
+    elements.profileMediaState.replaceChildren();
+    if (value.status !== "available" || !value.image || typeof value.image !== "object") {
+      const message = document.createElement("p");
+      message.textContent = safeText(value.message, "目前沒有可公開展示的官方圖片。");
+      const attribution = document.createElement("p");
+      attribution.className = "profile-data-reason";
+      attribution.textContent = safeText(value.license_attribution, "圖片來源或再利用權利尚未確認。");
+      elements.profileMediaState.append(message, attribution);
+      return;
+    }
+    const image = value.image;
+    const url = safeText(image.url, "");
+    if (!url.startsWith("/static/curated-media/dive-sites/") || url.includes("..")) {
+      const blocked = document.createElement("p");
+      blocked.textContent = "目前沒有可公開展示的官方圖片。";
+      elements.profileMediaState.append(blocked);
+      return;
+    }
+    const figure = document.createElement("figure");
+    const img = document.createElement("img");
+    img.src = url;
+    img.alt = safeText(image.alt, "官方景點圖片");
+    img.loading = "lazy";
+    img.addEventListener("error", () => {
+      figure.replaceChildren();
+      const fallback = document.createElement("p");
+      fallback.textContent = "官方圖片目前無法載入；未以其他圖片替代。";
+      figure.append(fallback);
+    }, { once: true });
+    const caption = document.createElement("figcaption");
+    caption.textContent = `圖片來源與顯名：${safeText(image.license_attribution)}；最後核對：${safeText(image.last_verified_at)}`;
+    figure.append(img, caption);
+    const source = createSafeLink("查看官方圖片原始來源", image.source_url);
+    if (source) figure.append(source);
+    elements.profileMediaState.append(figure);
+  }
+
+  function renderProfileTextSection(section, textElement, sourceList) {
+    const value = section && typeof section === "object" ? section : {};
+    if (value.status === "data_insufficient") {
+      textElement.textContent = "目前資料不足";
+      if (typeof value.reason === "string" && value.reason.trim()) {
+        const reason = document.createElement("span");
+        reason.className = "profile-data-reason";
+        reason.textContent = `：${value.reason.trim()}`;
+        textElement.append(reason);
+      }
+      clearProfileSources(sourceList);
+      return;
+    }
+    textElement.textContent = safeText(value.text, "目前資料不足");
+    renderProfileSources(sourceList, value.sources);
+  }
+
+  function renderProfileBasics(site) {
+    const value = site && typeof site === "object" ? site : {};
+    const point = value.representative_point && typeof value.representative_point === "object"
+      ? value.representative_point
+      : {};
+    const administrativeArea = value.administrative_area && typeof value.administrative_area === "object"
+      ? value.administrative_area
+      : {};
+    const basicSource = value.basic_source && typeof value.basic_source === "object"
+      ? value.basic_source
+      : {};
+    const region = [administrativeArea.county, administrativeArea.district]
+      .filter((part) => typeof part === "string" && part.trim())
+      .join("／");
+    const latitude = Number(point.latitude);
+    const longitude = Number(point.longitude);
+    const coordinates = Number.isFinite(latitude) && Number.isFinite(longitude)
+      ? `${latitude.toFixed(6)}, ${longitude.toFixed(6)}`
+      : "原始資料未提供";
+    elements.profileBasicFields.replaceChildren();
+    appendEvidenceField(elements.profileBasicFields, "潛點名稱", value.name);
+    if (region) appendEvidenceField(elements.profileBasicFields, "行政區", region);
+    appendEvidenceField(elements.profileBasicFields, "資料品質", value.data_quality);
+    appendEvidenceField(elements.profileBasicFields, "官方代表點座標", coordinates);
+    appendEvidenceField(elements.profileBasicFields, "最後核對日期", value.last_verified_at);
+    appendEvidenceField(
+      elements.profileBasicFields,
+      "基本資料來源",
+      createSafeLink(safeText(basicSource.name), basicSource.reference),
+    );
+  }
+
+  function renderProfileEvidence(profile) {
+    const evidence = profile && typeof profile.research_evidence_index === "object"
+      ? profile.research_evidence_index
+      : {};
+    const edna = evidence.edna && typeof evidence.edna === "object" ? evidence.edna : {};
+    const reefCheck = evidence.reef_check && typeof evidence.reef_check === "object" ? evidence.reef_check : {};
+    elements.profileEdnaStatus.textContent = `${safeText(edna.availability, "目前資料不足")}。${safeText(edna.limitations, "")}`;
+    elements.profileReefCheckStatus.textContent = `${safeText(reefCheck.availability, "目前資料不足")}。${safeText(reefCheck.limitations, "僅限本機非商業研究模式使用。")}`;
+    renderProfileSources(elements.profileEdnaSources, edna.sources);
+    renderProfileSources(elements.profileReefCheckSources, reefCheck.sources);
+  }
+
+  function renderProfileLimitations(payload, profile) {
+    const entries = [];
+    if (Array.isArray(payload.limitations)) entries.push(...payload.limitations);
+    if (profile && typeof profile.limitations === "string" && profile.limitations.trim()) {
+      entries.push(profile.limitations);
+    }
+    elements.profileLimitations.replaceChildren();
+    entries.forEach((entry) => {
+      if (typeof entry !== "string" || !entry.trim()) return;
+      const item = document.createElement("li");
+      item.textContent = entry.trim();
+      elements.profileLimitations.append(item);
+    });
+  }
+
+  function renderApprovedProfile(payload, context) {
+    const site = payload && payload.site && typeof payload.site === "object" ? payload.site : {};
+    const profile = payload && payload.profile && typeof payload.profile === "object" ? payload.profile : null;
+    if (safeText(site.id, "") !== context.siteId) throw new Error("profile_site_mismatch");
+    renderProfileBasics(site);
+    elements.profileDetails.hidden = false;
+    renderProfileMedia(payload && payload.media);
+    if (!profile || payload.status === "data_insufficient") {
+      elements.profileStatus.textContent = "目前資料不足：此潛點尚無可公開的來源核對介紹。";
+      elements.profileIntroductionText.textContent = "目前資料不足";
+      elements.profileEnvironmentText.textContent = "目前資料不足";
+      elements.profileActivityText.textContent = "目前資料不足";
+      clearProfileSources(elements.profileIntroductionSources);
+      clearProfileSources(elements.profileEnvironmentSources);
+      clearProfileSources(elements.profileActivitySources);
+      clearProfileSources(elements.profileEdnaSources);
+      clearProfileSources(elements.profileReefCheckSources);
+      elements.profileEdnaStatus.textContent = "請使用下方既有手動查詢，取得附近歷史 eDNA 證據。";
+      elements.profileReefCheckStatus.textContent = "僅在已啟用的本機非商業研究模式中，可使用下方既有手動查詢。";
+      renderProfileLimitations(payload, null);
+      return;
+    }
+    if (payload.status !== "available") throw new Error("profile_status_invalid");
+    elements.profileStatus.textContent = "已載入可公開的來源核對介紹。";
+    renderProfileTextSection(profile.official_introduction, elements.profileIntroductionText, elements.profileIntroductionSources);
+    renderProfileTextSection(profile.geographic_environment_features, elements.profileEnvironmentText, elements.profileEnvironmentSources);
+    renderProfileTextSection(profile.public_activity_background, elements.profileActivityText, elements.profileActivitySources);
+    renderProfileEvidence(profile);
+    renderProfileLimitations(payload, profile);
+  }
+
+  async function loadSelectedSiteProfile() {
+    const context = currentProfileContext();
+    if (!context) return;
+    clearProfileDisplay();
+    setProfileDrawerCollapsed(false);
+    if (!profileTools || !profileRequests) {
+      elements.profileStatus.textContent = "潛點介紹查詢元件目前無法使用；未顯示任何補充資料。";
+      return;
+    }
+    const token = profileRequests.start(context);
+    setProfileBusy(true);
+    elements.profileStatus.textContent = "正在讀取來源核對的潛點介紹。";
+    try {
+      const response = await fetch(profileTools.buildProfileUrl(context.siteId), {
+        headers: { Accept: "application/json" },
+        credentials: "same-origin",
+        cache: "no-store",
+        signal: token.signal,
+      });
+      if (!profileRequests.isCurrent(token, currentProfileContext())) return;
+      if (response.status === 404) {
+        elements.profileStatus.textContent = "找不到目前選取潛點的介紹資料（404）。";
+        return;
+      }
+      if (response.status === 503) {
+        elements.profileStatus.textContent = "潛點介紹來源目前無法驗證（503）；未顯示舊資料。";
+        return;
+      }
+      if (!response.ok) {
+        elements.profileStatus.textContent = `潛點介紹查詢失敗（HTTP ${response.status}）。未顯示任何補充資料。`;
+        return;
+      }
+      try {
+        const payload = await response.json();
+        if (!profileRequests.isCurrent(token, currentProfileContext())) return;
+        renderApprovedProfile(payload, context);
+      } catch (_error) {
+        if (!profileRequests.isCurrent(token, currentProfileContext())) return;
+        clearProfileDisplay();
+        elements.profileStatus.textContent = "潛點介紹回應格式無法驗證；未顯示任何補充資料。";
+      }
+    } catch (error) {
+      if (error && error.name === "AbortError") return;
+      if (!profileRequests.isCurrent(token, currentProfileContext())) return;
+      clearProfileDisplay();
+      elements.profileStatus.textContent = "無法連線至潛點介紹 API；未顯示任何補充資料。";
+    } finally {
+      if (profileRequests.isCurrent(token, currentProfileContext())) {
+        profileRequests.finish(token);
+        setProfileBusy(false);
+      }
+    }
+  }
+
+  function focusManualQuery(panel, control) {
+    panel.scrollIntoView({ block: "start", behavior: "smooth" });
+    control.focus({ preventScroll: true });
+  }
+
   function selectSite(site, origin) {
     const id = safeText(site.id, "");
     const siteChanged = !selectedSite || safeText(selectedSite.id, "") !== id;
@@ -867,6 +1170,7 @@
     const source = site && typeof site.source === "object" ? site.source : {};
     const region = displayRegion(site);
     selectedSite = site;
+    updateProfileShortcutControls();
 
     if (siteChanged) {
       resetEdnaQuery(
@@ -881,6 +1185,7 @@
         `已選擇 ${safeText(site.name)}。請先選擇預報範圍，再按下「查看行政區天氣預報」。`,
         { resetRange: true },
       );
+      loadSelectedSiteProfile();
     }
 
     elements.detailName.textContent = safeText(site.name);
@@ -1058,6 +1363,18 @@
       : `已選擇未來 ${hours} 小時；請按下「查看行政區天氣預報」。`;
     resetWeatherQuery(message);
   });
+  elements.profileToggle.addEventListener("click", () => {
+    setProfileDrawerCollapsed(!elements.profileContent.hidden);
+  });
+  elements.profileToEdna.addEventListener("click", () => {
+    focusManualQuery(elements.ednaPanel, elements.ednaRadius);
+  });
+  elements.profileToReefCheck.addEventListener("click", () => {
+    focusManualQuery(elements.reefCheckPanel, elements.reefCheckRadius);
+  });
+  elements.profileToWeather.addEventListener("click", () => {
+    focusManualQuery(elements.weatherPanel, elements.weatherRange);
+  });
 
   if (!ednaTools) {
     resetEdnaQuery("附近歷史 eDNA 查詢元件無法載入；潛點基本資料仍可使用。");
@@ -1074,6 +1391,7 @@
   } else {
     updateWeatherControls();
   }
+  updateProfileShortcutControls();
 
   const notice = document.querySelector(".representative-point-notice");
   if (notice) notice.textContent = REPRESENTATIVE_POINT_NOTICE;
