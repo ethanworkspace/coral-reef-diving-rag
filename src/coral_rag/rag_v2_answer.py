@@ -8,14 +8,21 @@ from datetime import datetime, timezone, timedelta
 from pathlib import Path
 from typing import Any, Callable
 
+from urllib.request import Request, urlopen
+from urllib.error import HTTPError, URLError
+
 from coral_rag.chat_model import (
-    IAIProvider,
-    GeminiProvider,
     _read_local_values,
     _IAI_SETTING_NAMES,
     _GEMINI_SETTING_NAMES,
     IAILiveConfiguration,
     GeminiLiveConfiguration,
+    iai_chat_completion_url,
+    gemini_chat_completion_url,
+    gemini_native_generate_content_url,
+    _gemini_openai_compatible,
+    classify_iai_http_status,
+    classify_iai_transport_error,
 )
 from coral_rag.chat_router import ChatRequest, route_chat_request
 from coral_rag.rag_v2_hybrid import (
@@ -271,6 +278,100 @@ def validate_model_output(
 # LLM Provider Dispatcher
 # ---------------------------------------------------------------------------
 
+def _send_openai_chat_completion(
+    url: str,
+    api_key: str,
+    model: str,
+    prompt: str,
+    extra_headers: dict[str, str] | None = None,
+    timeout_seconds: float = 25.0,
+) -> tuple[str | None, str | None]:
+    payload = {
+        "model": model,
+        "messages": [
+            {"role": "user", "content": prompt}
+        ],
+        "temperature": 0,
+        "response_format": {"type": "json_object"},
+    }
+    headers = {
+        "Content-Type": "application/json",
+        "Authorization": f"Bearer {api_key}",
+    }
+    if extra_headers:
+        headers.update(extra_headers)
+
+    req = Request(
+        url,
+        data=json.dumps(payload, ensure_ascii=False).encode("utf-8"),
+        headers=headers,
+        method="POST",
+    )
+    try:
+        with urlopen(req, timeout=timeout_seconds) as resp:
+            data = json.loads(resp.read().decode("utf-8"))
+            if "choices" in data and isinstance(data["choices"], list) and len(data["choices"]) > 0:
+                msg = data["choices"][0].get("message", {})
+                content = msg.get("content")
+                if isinstance(content, str) and content.strip():
+                    return content.strip(), None
+            return None, "provider_malformed_response"
+    except HTTPError as error:
+        code = classify_iai_http_status(error.code)
+        return None, code
+    except (TimeoutError, URLError, OSError) as error:
+        code = classify_iai_transport_error(error)
+        return None, code
+    except Exception:
+        return None, "provider_call_exception"
+
+
+def _send_gemini_native_content(
+    url: str,
+    api_key: str,
+    prompt: str,
+    timeout_seconds: float = 25.0,
+) -> tuple[str | None, str | None]:
+    payload = {
+        "contents": [
+            {"role": "user", "parts": [{"text": prompt}]}
+        ],
+        "generationConfig": {
+            "temperature": 0,
+            "responseMimeType": "application/json",
+        },
+    }
+    headers = {
+        "Content-Type": "application/json",
+        "x-goog-api-key": api_key,
+    }
+    req = Request(
+        url,
+        data=json.dumps(payload, ensure_ascii=False).encode("utf-8"),
+        headers=headers,
+        method="POST",
+    )
+    try:
+        with urlopen(req, timeout=timeout_seconds) as resp:
+            data = json.loads(resp.read().decode("utf-8"))
+            candidates = data.get("candidates", [])
+            if candidates and isinstance(candidates, list) and len(candidates) > 0:
+                parts = candidates[0].get("content", {}).get("parts", [])
+                if parts and isinstance(parts, list) and len(parts) > 0:
+                    text = parts[0].get("text")
+                    if isinstance(text, str) and text.strip():
+                        return text.strip(), None
+            return None, "provider_malformed_response"
+    except HTTPError as error:
+        code = classify_iai_http_status(error.code)
+        return None, code
+    except (TimeoutError, URLError, OSError) as error:
+        code = classify_iai_transport_error(error)
+        return None, code
+    except Exception:
+        return None, "provider_call_exception"
+
+
 def call_configured_llm(
     prompt: str,
     provider_name: str = "env",
@@ -286,83 +387,77 @@ def call_configured_llm(
     if provider_name == "disabled":
         return None, "provider_disabled"
 
-    selected = provider_name
-    if selected == "env":
+    candidates_to_try: list[str] = []
+    if provider_name == "env":
         iai_vals = _read_local_values(root, _IAI_SETTING_NAMES)
         gemini_vals = _read_local_values(root, _GEMINI_SETTING_NAMES)
-        if all(gemini_vals.values()):
-            selected = "gemini"
-        elif all(iai_vals.values()):
-            selected = "iai"
-        else:
+        has_iai = all(iai_vals.values())
+        has_gemini = all(gemini_vals.values())
+        # 在 env 模式下，優先嘗試在地穩定服務，其餘互為備援
+        if has_iai:
+            candidates_to_try.append("iai")
+        if has_gemini:
+            candidates_to_try.append("gemini")
+        if not candidates_to_try:
             return None, "provider_configuration_missing"
+    elif provider_name in ("iai", "gemini"):
+        candidates_to_try.append(provider_name)
+    else:
+        return None, "provider_unsupported"
 
-    if selected == "gemini":
-        gemini_vals = _read_local_values(root, _GEMINI_SETTING_NAMES)
-        if not all(gemini_vals.values()):
-            return None, "provider_configuration_missing"
-        cfg = GeminiLiveConfiguration(
-            api_key=gemini_vals["GEMINI_API_KEY"],  # type: ignore
-            base_url=gemini_vals["GEMINI_BASE_URL"],  # type: ignore
-            chat_model=gemini_vals["GEMINI_CHAT_MODEL"],  # type: ignore
-        )
-        # Using GeminiProvider
-        provider = GeminiProvider(cfg)
-        from coral_rag.chat_model import ModelInvocation, ModelLimits, CANDIDATE_SCHEMA_VERSION
-        from coral_rag.chat_router import ProcessingPlan, ControlledContext
-        fake_plan = ProcessingPlan(
-            category="conservation", risk_level="low", action="search_public_summary",
-            required_inputs=(), freshness_required=False, allowed_routes=(),
-            source_whitelist=(), prohibited_claims=(), limitation_ids=(),
-            blocked_sources=(), reason_codes=(), model_context_allowed=True,
-        )
-        fake_ctx = ControlledContext(status="controlled", plan=fake_plan)
-        invocation = ModelInvocation(
-            schema_version=CANDIDATE_SCHEMA_VERSION,
-            plan=fake_plan,
-            context=fake_ctx,
-            question=prompt,
-            require_strict_json=False,
-            limits=ModelLimits(timeout_ms=15000),
-        )
-        res = provider.generate(invocation)
-        if res.status == "candidate" and isinstance(res.candidate, str):
-            return res.candidate, None
-        return None, res.error_code or res.status
+    last_error: str | None = None
+    for prov in candidates_to_try:
+        if prov == "iai":
+            iai_vals = _read_local_values(root, _IAI_SETTING_NAMES)
+            if not all(iai_vals.values()):
+                last_error = "provider_configuration_missing"
+                continue
+            cfg_iai = IAILiveConfiguration(
+                api_key=iai_vals["IAI_API_KEY"],
+                base_url=iai_vals["IAI_BASE_URL"],
+                chat_model=iai_vals["IAI_CHAT_MODEL"],
+            )
+            raw, err = _send_openai_chat_completion(
+                url=iai_chat_completion_url(cfg_iai),
+                api_key=cfg_iai.api_key,
+                model=cfg_iai.chat_model,
+                prompt=prompt,
+                timeout_seconds=25.0,
+            )
+            if raw is not None:
+                return raw, None
+            last_error = err
 
-    if selected == "iai":
-        iai_vals = _read_local_values(root, _IAI_SETTING_NAMES)
-        if not all(iai_vals.values()):
-            return None, "provider_configuration_missing"
-        cfg = IAILiveConfiguration(
-            api_key=iai_vals["IAI_API_KEY"],  # type: ignore
-            base_url=iai_vals["IAI_BASE_URL"],  # type: ignore
-            chat_model=iai_vals["IAI_CHAT_MODEL"],  # type: ignore
-        )
-        provider = IAIProvider(cfg)
-        from coral_rag.chat_model import ModelInvocation, ModelLimits, CANDIDATE_SCHEMA_VERSION
-        from coral_rag.chat_router import ProcessingPlan, ControlledContext
-        fake_plan = ProcessingPlan(
-            category="conservation", risk_level="low", action="search_public_summary",
-            required_inputs=(), freshness_required=False, allowed_routes=(),
-            source_whitelist=(), prohibited_claims=(), limitation_ids=(),
-            blocked_sources=(), reason_codes=(), model_context_allowed=True,
-        )
-        fake_ctx = ControlledContext(status="controlled", plan=fake_plan)
-        invocation = ModelInvocation(
-            schema_version=CANDIDATE_SCHEMA_VERSION,
-            plan=fake_plan,
-            context=fake_ctx,
-            question=prompt,
-            require_strict_json=True,
-            limits=ModelLimits(timeout_ms=15000),
-        )
-        res = provider.generate(invocation)
-        if res.status == "candidate":
-            return json.dumps(res.candidate, ensure_ascii=False), None
-        return None, res.error_code or res.status
+        elif prov == "gemini":
+            gemini_vals = _read_local_values(root, _GEMINI_SETTING_NAMES)
+            if not all(gemini_vals.values()):
+                last_error = "provider_configuration_missing"
+                continue
+            cfg_gem = GeminiLiveConfiguration(
+                api_key=gemini_vals["GEMINI_API_KEY"],
+                base_url=gemini_vals["GEMINI_BASE_URL"],
+                chat_model=gemini_vals["GEMINI_CHAT_MODEL"],
+            )
+            if _gemini_openai_compatible(cfg_gem):
+                raw, err = _send_openai_chat_completion(
+                    url=gemini_chat_completion_url(cfg_gem),
+                    api_key=cfg_gem.api_key,
+                    model=cfg_gem.chat_model,
+                    prompt=prompt,
+                    timeout_seconds=25.0,
+                )
+            else:
+                raw, err = _send_gemini_native_content(
+                    url=gemini_native_generate_content_url(cfg_gem),
+                    api_key=cfg_gem.api_key,
+                    prompt=prompt,
+                    timeout_seconds=25.0,
+                )
+            if raw is not None:
+                return raw, None
+            last_error = err
 
-    return None, "provider_unsupported"
+    return None, last_error or "provider_call_failed"
 
 
 # ---------------------------------------------------------------------------
