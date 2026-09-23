@@ -1,0 +1,8 @@
+# Version constraints for RAG v2 local vector embedding sidecar.
+# Note: This file specifies primary version constraints for direct dependencies.
+# Transitive dependencies are managed by pip during resolution.
+
+sentence-transformers==6.1.0
+torch==2.14.0
+transformers==5.17.0
+numpy==2.5.3

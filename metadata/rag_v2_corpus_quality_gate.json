@@ -1,0 +1,39 @@
+{
+  "evaluated_at": "2026-09-23T12:30:25.823686+08:00",
+  "raw_eligible_section_count": 67,
+  "indexable_eligible_section_count": 66,
+  "eligible_section_count": 66,
+  "total_section_count": 482,
+  "document_gate_results": {
+    "oca_coral_reef_ecosystem_intro": {
+      "status": "document_gate_failed",
+      "raw_eligible_sections": 1,
+      "indexable_eligible_sections": 0,
+      "total_sections": 81,
+      "threshold": 3,
+      "reason": "Eligible sections (1) below single document threshold (3); flagged document_gate_failed and forced index_eligible=false"
+    },
+    "noaa_shallow_coral_reef_habitat": {
+      "status": "document_gate_passed",
+      "raw_eligible_sections": 55,
+      "indexable_eligible_sections": 55,
+      "total_sections": 69,
+      "threshold": 3,
+      "reason": "Meets single document threshold (55 >= 3)"
+    }
+  },
+  "corpus_gate_threshold": 25,
+  "status": "quality_gate_met",
+  "eligible_source_ids": [
+    "noaa_corals_tutorial",
+    "noaa_shallow_coral_reef_habitat",
+    "oca_coral_reef_recovery_guide",
+    "oca_marine_protected_area_knowledge"
+  ],
+  "blocked_source_ids": [
+    "oca_marine_biology_intro",
+    "oca_friendly_whale_watching",
+    "oca_coral_reef_ecosystem_intro"
+  ],
+  "rationale": "語料庫實際可索引段落數達 66 筆（門檻 25 筆），語料品質閘門判定為 quality_gate_met。其中 `noaa_shallow_coral_reef_habitat` 通過單篇閘門；`oca_coral_reef_ecosystem_intro` 未達單篇門檻 (3 筆)，已標記 document_gate_failed 並強制 index_eligible=false，列入 blocked_source_ids 禁止進入後續 RAG 索引。"
+}

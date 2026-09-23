@@ -1,0 +1,66 @@
+{
+  "inspected_at": "2026-09-23T18:15:12.493197+08:00",
+  "python": {
+    "version": "3.14.4",
+    "version_tuple": [
+      3,
+      14,
+      4
+    ],
+    "architecture": "64bit",
+    "machine": "AMD64",
+    "executable": "C:\\my project\\coral-reef-diving-rag\\.venv\\Scripts\\python.exe",
+    "platform": "Windows-11-10.0.26200-SP0"
+  },
+  "system_resources": {
+    "ram_total_gb": 31.27,
+    "ram_available_gb": 14.98,
+    "disk_total_gb": 447.43,
+    "disk_free_gb": 95.86,
+    "disk_free_ratio": 0.2143
+  },
+  "ml_libraries": {
+    "torch": {
+      "installed": false,
+      "version": null
+    },
+    "transformers": {
+      "installed": false,
+      "version": null
+    },
+    "sentence_transformers": {
+      "installed": false,
+      "version": null
+    },
+    "onnxruntime": {
+      "installed": false,
+      "version": null
+    },
+    "fastembed": {
+      "installed": false,
+      "version": null
+    }
+  },
+  "gpu": {
+    "available": true,
+    "device_name": "NVIDIA GeForce RTX 4050 Laptop GPU",
+    "vram_total_mb": 6141,
+    "vram_free_mb": 4858,
+    "smi_path": "C:\\Windows\\system32\\nvidia-smi.EXE"
+  },
+  "local_model_cache": {
+    "cache_roots_checked": [
+      "C:\\Users\\ethan\\.cache\\huggingface\\hub",
+      "C:\\Users\\ethan\\.cache\\torch\\sentence_transformers"
+    ],
+    "cached_models": [],
+    "has_cached_embedding_models": false
+  },
+  "safety_and_privacy_compliance": {
+    "read_environment_variables": false,
+    "read_api_keys_or_tokens": false,
+    "read_user_file_contents": false,
+    "network_requests_made": false,
+    "package_installation_performed": false
+  }
+}

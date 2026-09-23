@@ -1,0 +1,87 @@
+version: "1.0.0"
+contract_id: "rag_v2_vector_retrieval_contract"
+established_at: "2026-09-23T18:15:00+08:00"
+updated_at: "2026-09-23T18:25:00+08:00"
+
+default_policies:
+  single_model_policy: "embedding 文件與查詢必須使用同一個本機多語模型"
+  zero_translation_policy: "文件中英文原文不翻譯，直接使用多語向量模型本體之跨語言語意投影空間"
+  hybrid_parallel_policy: "向量檢索與現有 FTS5 並行雙軌運作，未來採分數融合，絕不取代 FTS 詞彙檢索"
+  allow_external_embedding: false
+  external_embedding_governance: "預設禁止將 chunks 傳送到外部 embedding API；若未來啟用外部 embedding，必須是獨立設定、明確使用者同意且不得為預設值"
+
+execution_boundaries:
+  command_separation: "下載與建庫指令嚴格分離。'download-rag-v2-embedding-model --confirm-download' 為唯一允許對 Hugging Face 進行模型下載的命令；'build-rag-v2-dense'、'search-rag-v2-dense'、'evaluate-rag-v2-dense' 必須在完全離線環境下執行（local_files_only=True、HF_HUB_OFFLINE=1），若模型檔案缺失或不完整必須 fail-closed，絕不得隱蔽發起網路請求"
+  gpu_best_effort: "CUDA GPU 加速僅為效能最佳化，不得作為系統功能前提。建庫時動態實測 torch.cuda.is_available() 與可用 VRAM；若無法使用或發生 OOM，必須自動優雅降級為 CPU 執行並在 Manifest 記錄降級原因"
+  provenance_manifest_depth: "Manifest 必須記錄完整模型來源（repository、精確 revision SHA、license、下載時間戳記）、每個模型檔案之相對路徑、檔案大小（bytes）與 SHA-256 雜湊，以及執行環境之實際套件版本與 pip check 依賴一致性驗證結果"
+  dependency_constraint_nature: "requirements-vector.txt 作為頂層版本約束（version constraints）管理主要套件版本，非完整凍結所有遞迴依賴之 lockfile"
+
+model_selection_rules:
+  licensing_and_locality: "只能選具明確開放授權（如 MIT、Apache-2.0）、可完全離線本機執行、且具備繁中與英文跨語言語意對齊評測實證的 embedding 模型"
+  hardware_fallback: "GPU 不可用時，必須保留 CPU 可行方案，限制批次大小（CPU batch_size <= 4 或 8），並可採 INT8/ONNX 量化加速"
+  resource_exhaustion_defense: "若本機運算資源不足或環境依賴無法滿足，Task 12 必須 fail-closed，嚴禁未經授權隱蔽切換至雲端 API"
+  task_boundary: "全程最多下載一個經官方模型卡複驗核准之模型，禁止下載多個模型重複比較"
+
+model_candidates:
+  - candidate_id: "BAAI/bge-m3"
+    local_or_remote: "local"
+    multilingual_support: "高（支援 100+ 語言，包含繁簡中文與英文高品質對齊，支援 dense/sparse/ColBERT 多功能）"
+    license: "MIT（官方模型卡已確認 MIT 授權，允許商業與學術離線使用）"
+    model_size_or_disk_estimate: "約 2.2 GB (FP16)"
+    embedding_dimension: 1024
+    CPU/GPU compatibility: "相容 CPU 與 CUDA GPU；在 RTX 4050 (6GB VRAM) 可執行，CPU fallback 可行"
+    expected_fit_for_zh_en: "極佳（在多語檢索基準與中英語意跨語言對齊上表現居頂尖水準）"
+    privacy_assessment: "完全本機離線執行，無外部資料外洩風險"
+    decision: "approved"
+    decision_reason: "首選候選模型，經官方模型卡審核（Revision: 5617a9f61b028005a4858fdac845db406aefb181），具備合法 MIT 授權、頂尖繁中/英文多語檢索表現、可在本機 6GB VRAM 或 CPU 離線運作，條件全部滿足，正式核准為本次唯一使用模型"
+
+  - candidate_id: "intfloat/multilingual-e5-base"
+    local_or_remote: "local"
+    multilingual_support: "高（支援多語跨語言檢索，在中英語意對齊具備廣泛工業驗證）"
+    license: "MIT"
+    model_size_or_disk_estimate: "約 1.1 GB (FP16)"
+    embedding_dimension: 768
+    CPU/GPU compatibility: "相容 CPU 與 CUDA GPU"
+    expected_fit_for_zh_en: "良好"
+    privacy_assessment: "完全本機離線執行"
+    decision: "deferred"
+    decision_reason: "備選模型。首選候選 BAAI/bge-m3 已審核通過，依'全程最多下載一個模型'原則保持 deferred，不重複下載"
+
+  - candidate_id: "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
+    local_or_remote: "local"
+    multilingual_support: "中（支援 50+ 語言跨語言 paraphrase 投影，中英語意對齊良好）"
+    license: "Apache-2.0"
+    model_size_or_disk_estimate: "約 470 MB (FP16)"
+    embedding_dimension: 384
+    CPU/GPU compatibility: "極佳"
+    expected_fit_for_zh_en: "中等"
+    privacy_assessment: "完全本機離線執行"
+    decision: "deferred"
+    decision_reason: "輕量備用模型。首選候選已核准，保持 deferred"
+
+  - candidate_id: "openai/text-embedding-3-small"
+    local_or_remote: "remote"
+    multilingual_support: "高"
+    license: "Commercial Proprietary API"
+    model_size_or_disk_estimate: "雲端服務（本地磁碟佔用 0 MB）"
+    embedding_dimension: 1536
+    CPU/GPU compatibility: "依賴遠端伺服器"
+    expected_fit_for_zh_en: "極佳"
+    privacy_assessment: "存在網路傳輸、外部供應商存取、金鑰管理與資料出境隱私風險"
+    decision: "rejected"
+    decision_reason: "違反本專案預設本機離線、禁止資料外傳（allow_external_embedding=false）之資安與資料契約原則，預設直接拒絕"
+
+acceptance_criteria:
+  hard_quality_gates:
+    target_holdout_cross_language_hit_at_3: 0.70
+    target_holdout_cross_language_mrr_at_3: 0.50
+    target_chunk_embedding_coverage_ratio: 1.0
+  recorded_performance_metrics:
+    latency_evaluation_policy: "latency_p50_p95_measured_only"
+    record_fields:
+      - "indexing_latency_per_chunk_seconds_p50"
+      - "indexing_latency_per_chunk_seconds_p95"
+      - "query_latency_seconds_p50"
+      - "query_latency_seconds_p95"
+    policy_rationale: "推論延遲取決於實際運行的 CPU/GPU 與量化格式，採觀測記錄 (measured) 方式評估，不作硬性阻絕門檻，避免因純硬體差異導致檢索模型遭誤判失敗"
+  note_on_fts5_baseline: "FTS5 在 Task 10 達成的 100% 命中是同語言詞彙導向與精確關鍵字重合的 baseline，不可被當成跨語言泛化證據。多語向量檢索的唯一目的在於跨越中英文無共享字詞的語意鴻溝（如 holdout 測試集所驗證）。"

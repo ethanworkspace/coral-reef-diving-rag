@@ -1,0 +1,295 @@
+{
+  "manifest_version": "1.0.0",
+  "generated_at": "2026-09-23T18:35:01.762189+08:00",
+  "model_id": "BAAI/bge-m3",
+  "model_revision": "5617a9f61b028005a4858fdac845db406aefb181",
+  "model_card_url": "https://huggingface.co/BAAI/bge-m3",
+  "license": "MIT",
+  "model_dir": "C:\\my project\\coral-reef-diving-rag\\data\\models\\rag_v2\\BAAI__bge-m3",
+  "model_files_count": 63,
+  "model_files_manifest": {
+    ".cache/huggingface/.gitignore": {
+      "size_bytes": 1,
+      "sha256": "684888c0ebb17f374298b65ee2807526c066094c701bcc7ebbe1c1095f494fc1"
+    },
+    ".cache/huggingface/CACHEDIR.TAG": {
+      "size_bytes": 195,
+      "sha256": "e8893e2dcb3f4545ef67a0a5b7b769113d38eef1aa61c7c7ba14659b02af955f"
+    },
+    ".cache/huggingface/download/.gitattributes.metadata": {
+      "size_bytes": 104,
+      "sha256": "2b66da58841a208dfca7b10163fc9962bf8e5dc1509ecaac237ff4bdbf04ebc8"
+    },
+    ".cache/huggingface/download/1_Pooling/config.json.metadata": {
+      "size_bytes": 104,
+      "sha256": "16c66f99dd42f7fd5fb0af411fb587a8732278e44ea8cd227ea90035064b4ad3"
+    },
+    ".cache/huggingface/download/colbert_linear.pt.metadata": {
+      "size_bytes": 128,
+      "sha256": "07c41ceb5dbd6146d59b6019111c078cb69394d2eed6c4771b2c84c67dd4dff6"
+    },
+    ".cache/huggingface/download/config.json.metadata": {
+      "size_bytes": 104,
+      "sha256": "bdf4d3e20b3c5781fd95c64bb391081e725318f52d1a78f49d37042610dbc73c"
+    },
+    ".cache/huggingface/download/config_sentence_transformers.json.metadata": {
+      "size_bytes": 104,
+      "sha256": "ffa191af73da2ec66fee49e6e6d5309d8ee17c36d5b264372f6685aa738e6467"
+    },
+    ".cache/huggingface/download/imgs/.DS_Store.metadata": {
+      "size_bytes": 104,
+      "sha256": "2a906e4497ff63a50647176b71b9041dece470cb78d3ce2164f14fadb32b6916"
+    },
+    ".cache/huggingface/download/imgs/bm25.jpg.metadata": {
+      "size_bytes": 104,
+      "sha256": "96063108e8a7135e47eeb780bc29f2d4c628358dd73e0dc08d9a5e9cdd051969"
+    },
+    ".cache/huggingface/download/imgs/long.jpg.metadata": {
+      "size_bytes": 104,
+      "sha256": "59be5c10fb5d3551d8885b45e7a6c9c7cc1c096d0c9b8b6ad7154537299d72d7"
+    },
+    ".cache/huggingface/download/imgs/miracl.jpg.metadata": {
+      "size_bytes": 104,
+      "sha256": "eb9ec4fc402fe5041e2cecc409dcd064e4c620e0612eaded56c1127eaab06158"
+    },
+    ".cache/huggingface/download/imgs/mkqa.jpg.metadata": {
+      "size_bytes": 103,
+      "sha256": "8c8e6e80b2247fa1c8190467660181f3d267f4953632f747d46ad85e497671db"
+    },
+    ".cache/huggingface/download/imgs/nqa.jpg.metadata": {
+      "size_bytes": 104,
+      "sha256": "d65a03457115197e35cbc14f10ac1ee602ede1e351a84e26255c7ded431f2ac7"
+    },
+    ".cache/huggingface/download/imgs/others.webp.metadata": {
+      "size_bytes": 103,
+      "sha256": "bff94d3d8150ed06b16e26178494da784786c33556d18302b3bfc153f802b988"
+    },
+    ".cache/huggingface/download/long.jpg.metadata": {
+      "size_bytes": 104,
+      "sha256": "431c5135cc4e10b604caaf1aaba8ee354f611490c89b3ebc9c5c7ba199fdd681"
+    },
+    ".cache/huggingface/download/modules.json.metadata": {
+      "size_bytes": 104,
+      "sha256": "3c34ad7523ddb1ededebbe4cc48046580f1a65677729c6efdf70b2a69f048d8c"
+    },
+    ".cache/huggingface/download/onnx/config.json.metadata": {
+      "size_bytes": 103,
+      "sha256": "2ed75f137a0912d18512414c9f6f46e3e033ee5254e88c77e41fdd7474ac609c"
+    },
+    ".cache/huggingface/download/onnx/Constant_7_attr__value.metadata": {
+      "size_bytes": 103,
+      "sha256": "a8123c6c6c72af6ce1ee8d9592681663fe46fe3bc7fe7b73adb5c640cce0cf3a"
+    },
+    ".cache/huggingface/download/onnx/model.onnx.metadata": {
+      "size_bytes": 128,
+      "sha256": "b914f3e8f3d7372ca5a123934a143ba837462aa1088a6ef370194428e4b192a5"
+    },
+    ".cache/huggingface/download/onnx/model.onnx_data.metadata": {
+      "size_bytes": 128,
+      "sha256": "f9ca4384e948252d6006e9e031d946fa6a0f9a2dc6e5ad99b2a0c9b419214ae1"
+    },
+    ".cache/huggingface/download/onnx/sentencepiece.bpe.model.metadata": {
+      "size_bytes": 127,
+      "sha256": "cb68f441bf16ecdb872ee2554d0c5f197a40403214273692cc50afadc6619ab3"
+    },
+    ".cache/huggingface/download/onnx/special_tokens_map.json.metadata": {
+      "size_bytes": 104,
+      "sha256": "47ab0f490c0508aa90512de9c3c09cad6a5a0ebfc94b4ecb237e496f4c607372"
+    },
+    ".cache/huggingface/download/onnx/tokenizer.json.metadata": {
+      "size_bytes": 128,
+      "sha256": "42eb92c3c2dd07a39b17c95e32fd085137d873d3e0870c6fa85fa433c60a02f6"
+    },
+    ".cache/huggingface/download/onnx/tokenizer_config.json.metadata": {
+      "size_bytes": 104,
+      "sha256": "fb4b5d4dda1f1b37b14f886701c739e48bf46de9c3cdf42ad03e3bfad9a2a6b2"
+    },
+    ".cache/huggingface/download/pytorch_model.bin.metadata": {
+      "size_bytes": 126,
+      "sha256": "dd196c41de1e5fe725ef93d34954661473f4c801746ac74e1ff1b962789854fd"
+    },
+    ".cache/huggingface/download/README.md.metadata": {
+      "size_bytes": 104,
+      "sha256": "8a300efe6ae057b4900e2de0b0348c22bca0493a5436ac424223b91f54ac18f1"
+    },
+    ".cache/huggingface/download/sentence_bert_config.json.metadata": {
+      "size_bytes": 104,
+      "sha256": "accc7eadfa5f038c708ef56a42dcbe7d3763df09f2516141fbf3406abdc738a2"
+    },
+    ".cache/huggingface/download/sentencepiece.bpe.model.metadata": {
+      "size_bytes": 128,
+      "sha256": "b0e3613b5539f3b605ca6b07a739c7956f0a49359640596e1746736998f42b7c"
+    },
+    ".cache/huggingface/download/sparse_linear.pt.metadata": {
+      "size_bytes": 128,
+      "sha256": "8fe8e2c9fe6e43ce859ee33c6384427f9246a2f19dca486a17bc13ab0273a0ba"
+    },
+    ".cache/huggingface/download/special_tokens_map.json.metadata": {
+      "size_bytes": 104,
+      "sha256": "599b682d7b9b066214a38702fc1e83b2faa0854717447ac360e431f543ce01b4"
+    },
+    ".cache/huggingface/download/tokenizer.json.metadata": {
+      "size_bytes": 127,
+      "sha256": "47882c64d0efc49dd3516a5e4414d01bac40664b8b18c6e08317ec4af47e8913"
+    },
+    ".cache/huggingface/download/tokenizer_config.json.metadata": {
+      "size_bytes": 104,
+      "sha256": "e7a6aead121304de0bf0eaf5b54a834943803e6c2166a6d4f6f4d26a171b04a8"
+    },
+    ".cache/huggingface/trees/5617a9f61b028005a4858fdac845db406aefb181.json": {
+      "size_bytes": 5107,
+      "sha256": "ac6ca8029902de127d9a870d2712776240dc51eb9156b5d35844ea462c46db9d"
+    },
+    ".gitattributes": {
+      "size_bytes": 1627,
+      "sha256": "7363a8ebd782ede400e72bb3e88c19248478eb6f280a7376d398fc2f22707b9a"
+    },
+    "1_Pooling/config.json": {
+      "size_bytes": 191,
+      "sha256": "e54c164a07274f2eb45bb724f54a79d1efcc90c41573887cd9a29aeee0597352"
+    },
+    "colbert_linear.pt": {
+      "size_bytes": 2100674,
+      "sha256": "19bfbae397c2b7524158c919d0e9b19393c5639d098f0a66932c91ed8f5f9abb"
+    },
+    "config.json": {
+      "size_bytes": 687,
+      "sha256": "26159e7ad065073448460117eb24b7a4572f6f4e78eadff65dc0a11c052449fa"
+    },
+    "config_sentence_transformers.json": {
+      "size_bytes": 123,
+      "sha256": "1eef72430e7194a1e59680e635aed81ffa083f05668dbc5bb1c56c04c0999c38"
+    },
+    "imgs/.DS_Store": {
+      "size_bytes": 6148,
+      "sha256": "d65165279105ca6773180500688df4bdc69a2c7b771752f0a46ef120b7fd8ec3"
+    },
+    "imgs/bm25.jpg": {
+      "size_bytes": 131849,
+      "sha256": "4d88d1c224dc6dae62b76547e1e79ed12e1085b94dc1fe0c50440a948277d89a"
+    },
+    "imgs/long.jpg": {
+      "size_bytes": 485432,
+      "sha256": "d2a44539154d2cee75abd032fe773d5514f1129b741c4641cde12554762709a6"
+    },
+    "imgs/miracl.jpg": {
+      "size_bytes": 576482,
+      "sha256": "a48c10a1be83aa7a92a25d85dbc6d2c0194b59503a2599a9e89bd7e063c32a66"
+    },
+    "imgs/mkqa.jpg": {
+      "size_bytes": 608027,
+      "sha256": "ae331fb64bdceeaafecc2f8cd89a2d55a3e41c429dcc5ba906cb9a7bdb73cf2b"
+    },
+    "imgs/nqa.jpg": {
+      "size_bytes": 158358,
+      "sha256": "5385ca9d6af4124932281039e1366d704d10ed81e905526f795f5732352394bb"
+    },
+    "imgs/others.webp": {
+      "size_bytes": 20984,
+      "sha256": "9222ef69ba79cbd3aa8c659bd3cbbf9d90b3dbb040526f56298ed9ceb05ec9df"
+    },
+    "long.jpg": {
+      "size_bytes": 126894,
+      "sha256": "4ba03433ef54575eeef5a291abd81661eb53c432677934dc4050565893e7a8a9"
+    },
+    "modules.json": {
+      "size_bytes": 349,
+      "sha256": "84e40c8e006c9b1d6c122e02cba9b02458120b5fb0c87b746c41e0207cf642cf"
+    },
+    "onnx/config.json": {
+      "size_bytes": 698,
+      "sha256": "f24afd5de914fba8c668426c43d208a1a54022500c63b2c160be20891686fce8"
+    },
+    "onnx/Constant_7_attr__value": {
+      "size_bytes": 65552,
+      "sha256": "cdf16f72c5d07b36484056e601ed9687f78477e5d85cee85a34f2406b7fb5906"
+    },
+    "onnx/model.onnx": {
+      "size_bytes": 724923,
+      "sha256": "f84251230831afb359ab26d9fd37d5936d4d9bb5d1d5410e66442f630f24435b"
+    },
+    "onnx/model.onnx_data": {
+      "size_bytes": 2266820608,
+      "sha256": "1eebfb28493f67bba03ce0ef64bfdc7fc5a3bd9d7493f818bb1d78cd798416b4"
+    },
+    "onnx/sentencepiece.bpe.model": {
+      "size_bytes": 5069051,
+      "sha256": "cfc8146abe2a0488e9e2a0c56de7952f7c11ab059eca145a0a727afce0db2865"
+    },
+    "onnx/special_tokens_map.json": {
+      "size_bytes": 964,
+      "sha256": "8c785abebea9ae3257b61681b4e6fd8365ceafde980c21970d001e834cf10835"
+    },
+    "onnx/tokenizer.json": {
+      "size_bytes": 17082821,
+      "sha256": "6710678b12670bc442b99edc952c4d996ae309a7020c1fa0096dd245c2faf790"
+    },
+    "onnx/tokenizer_config.json": {
+      "size_bytes": 1173,
+      "sha256": "7e4c1cc848840aeccdd763458c18dd525eb0f795c992e00ebe9c28554e7db2d4"
+    },
+    "pytorch_model.bin": {
+      "size_bytes": 2271145830,
+      "sha256": "b5e0ce3470abf5ef3831aa1bd5553b486803e83251590ab7ff35a117cf6aad38"
+    },
+    "README.md": {
+      "size_bytes": 15822,
+      "sha256": "0b81ccf9134e5874d620a86e6905062ea999e779c34eb1a7e65eaeb7fe00e450"
+    },
+    "sentence_bert_config.json": {
+      "size_bytes": 54,
+      "sha256": "eb9b44b13c0f52a3b3685c3b1cbdea1ba8b04bea123b98f61610048940776eb1"
+    },
+    "sentencepiece.bpe.model": {
+      "size_bytes": 5069051,
+      "sha256": "cfc8146abe2a0488e9e2a0c56de7952f7c11ab059eca145a0a727afce0db2865"
+    },
+    "sparse_linear.pt": {
+      "size_bytes": 3516,
+      "sha256": "45c93804d2142b8f6d7ec6914ae23a1eee9c6a1d27d83d908a20d2afb3595ad9"
+    },
+    "special_tokens_map.json": {
+      "size_bytes": 964,
+      "sha256": "8c785abebea9ae3257b61681b4e6fd8365ceafde980c21970d001e834cf10835"
+    },
+    "tokenizer.json": {
+      "size_bytes": 17098108,
+      "sha256": "21106b6d7dab2952c1d496fb21d5dc9db75c28ed361a05f5020bbba27810dd08"
+    },
+    "tokenizer_config.json": {
+      "size_bytes": 444,
+      "sha256": "a62b2b6784f990259fddef5f16388693a8043be4f69179e6a5257eeb3f9abac4"
+    }
+  },
+  "dependencies": {
+    "constraint_file": "requirements-vector.txt",
+    "package_versions": {
+      "sentence_transformers": "6.1.0",
+      "torch": "2.14.0",
+      "transformers": "5.17.0",
+      "numpy": "2.5.3"
+    },
+    "pip_check": {
+      "exit_code": 1,
+      "consistent": false,
+      "output": "lxml 6.1.3 is not supported on this platform"
+    }
+  },
+  "hardware_execution": {
+    "cuda_available": false,
+    "device_used": "cpu",
+    "device_name": "AMD64 Family 25 Model 124 Stepping 0, AuthenticAMD",
+    "batch_size_used": 4,
+    "fallback_reason": "CUDA is not available on current PyTorch build/hardware"
+  },
+  "corpus_indexing": {
+    "source_chunks_path": "C:\\my project\\coral-reef-diving-rag\\data\\processed\\rag_v2\\chunks.jsonl",
+    "source_chunks_sha256": "ebb4ea98b9ca9d7e24bb3877734396390ebab5868dead9e12df9fc74f8e7a329",
+    "total_chunks_indexed": 27,
+    "target_coverage_ratio": 1.0,
+    "actual_coverage_ratio": 1.0,
+    "embedding_dimension": 1024,
+    "indexing_total_seconds": 15.6497,
+    "indexing_seconds_per_chunk": 0.5796
+  }
+}

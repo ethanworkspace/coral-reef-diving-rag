@@ -245,6 +245,218 @@ def build_structured_command(args: argparse.Namespace) -> int:
     return build_structured_database(project_root(), target_path=target)
 
 
+def build_rag_v2_fts_command(args: argparse.Namespace) -> int:
+    from .rag_v2_fts import build_rag_v2_fts
+    root = project_root()
+    chunks_path = (root / args.chunks).resolve() if args.chunks else root / "data" / "processed" / "rag_v2" / "chunks.jsonl"
+    quality_gate_path = (root / args.quality_gate).resolve() if args.quality_gate else root / "metadata" / "rag_v2_corpus_quality_gate.json"
+    db_path = (root / args.db_path).resolve() if args.db_path else root / "data" / "processed" / "rag_v2" / "rag_v2_fts.sqlite"
+    result = build_rag_v2_fts(chunks_path=chunks_path, quality_gate_path=quality_gate_path, db_path=db_path)
+    print(json.dumps(result, ensure_ascii=False))
+    return 0
+
+
+def search_rag_v2_fts_command(args: argparse.Namespace) -> int:
+    from .rag_v2_fts import search_rag_v2_fts
+    root = project_root()
+    db_path = (root / args.db_path).resolve() if args.db_path else root / "data" / "processed" / "rag_v2" / "rag_v2_fts.sqlite"
+    hits = search_rag_v2_fts(query=args.query, limit=args.limit, db_path=db_path)
+    if getattr(args, "json", False):
+        print(json.dumps([h.to_dict() for h in hits], ensure_ascii=False, indent=2))
+    else:
+        print(f"Found {len(hits)} hits for query: '{args.query}'")
+        for h in hits:
+            print(f"[{h.rank}] score={h.score:.4f} | chunk={h.chunk_id} | source={h.source_id}")
+            print(f"    Title: {h.title} ({' > '.join(h.heading_path)})")
+            snippet = h.text.replace("\n", " ")[:120]
+            print(f"    Snippet: {snippet}...")
+    return 0
+
+
+def evaluate_rag_v2_fts_command(args: argparse.Namespace) -> int:
+    from .rag_v2_fts import evaluate_rag_v2_fts
+    root = project_root()
+    db_path = (root / args.db_path).resolve() if args.db_path else root / "data" / "processed" / "rag_v2" / "rag_v2_fts.sqlite"
+    golden_path = (root / args.golden_cases).resolve() if args.golden_cases else root / "metadata" / "rag_v2_retrieval_golden_cases.jsonl"
+    report_path = (root / args.report_path).resolve() if args.report_path else root / "metadata" / "rag_v2_fts_baseline_report.md"
+    result = evaluate_rag_v2_fts(
+        db_path=db_path,
+        golden_cases_path=golden_path,
+        report_path=report_path,
+        top_k=args.top_k,
+    )
+    return 0
+
+
+def download_rag_v2_embedding_model_command(args: argparse.Namespace) -> int:
+    from .rag_v2_dense import download_approved_model
+    result = download_approved_model(confirm_download=args.confirm_download)
+    print(json.dumps(result, ensure_ascii=False, indent=2))
+    return 0 if result.get("status") in {"download_completed", "dry_run_only"} else 1
+
+
+def build_rag_v2_dense_command(args: argparse.Namespace) -> int:
+    from .rag_v2_dense import build_rag_v2_dense
+    root = project_root()
+    chunks_path = (root / args.chunks).resolve() if args.chunks else root / "data" / "processed" / "rag_v2" / "chunks.jsonl"
+    quality_gate_path = (root / args.quality_gate).resolve() if args.quality_gate else root / "metadata" / "rag_v2_corpus_quality_gate.json"
+    model_dir = (root / args.model_dir).resolve() if args.model_dir else root / "data" / "models" / "rag_v2" / "BAAI__bge-m3"
+    npy_path = (root / args.npy_path).resolve() if args.npy_path else root / "data" / "processed" / "rag_v2" / "dense_embeddings.npy"
+    rows_path = (root / args.rows_path).resolve() if args.rows_path else root / "data" / "processed" / "rag_v2" / "dense_embedding_rows.jsonl"
+    manifest_path = (root / args.manifest_path).resolve() if args.manifest_path else root / "metadata" / "rag_v2_embedding_model_manifest.json"
+
+    result = build_rag_v2_dense(
+        chunks_path=chunks_path,
+        quality_gate_path=quality_gate_path,
+        model_dir=model_dir,
+        output_npy=npy_path,
+        output_rows=rows_path,
+        manifest_path=manifest_path,
+        batch_size=args.batch_size,
+        device=args.device,
+    )
+    print(json.dumps(result, ensure_ascii=False, indent=2))
+    return 0
+
+
+def search_rag_v2_dense_command(args: argparse.Namespace) -> int:
+    from .rag_v2_dense import search_rag_v2_dense
+    root = project_root()
+    model_dir = (root / args.model_dir).resolve() if args.model_dir else root / "data" / "models" / "rag_v2" / "BAAI__bge-m3"
+    npy_path = (root / args.npy_path).resolve() if args.npy_path else root / "data" / "processed" / "rag_v2" / "dense_embeddings.npy"
+    rows_path = (root / args.rows_path).resolve() if args.rows_path else root / "data" / "processed" / "rag_v2" / "dense_embedding_rows.jsonl"
+    manifest_path = (root / args.manifest_path).resolve() if args.manifest_path else root / "metadata" / "rag_v2_embedding_model_manifest.json"
+    chunks_path = (root / args.chunks).resolve() if args.chunks else root / "data" / "processed" / "rag_v2" / "chunks.jsonl"
+
+    hits = search_rag_v2_dense(
+        query=args.query,
+        limit=args.limit,
+        model_dir=model_dir,
+        npy_path=npy_path,
+        rows_path=rows_path,
+        manifest_path=manifest_path,
+        chunks_path=chunks_path,
+    )
+    if getattr(args, "json", False):
+        print(json.dumps([h.to_dict() for h in hits], ensure_ascii=False, indent=2))
+    else:
+        print(f"Found {len(hits)} dense hits for query: '{args.query}'")
+        for h in hits:
+            print(f"[{h.rank}] score={h.score:.4f} | chunk={h.chunk_id} | source={h.source_id}")
+            print(f"    Title: {h.title} ({' > '.join(h.heading_path)})")
+            snippet = h.text.replace("\n", " ")[:120]
+            print(f"    Snippet: {snippet}...")
+    return 0
+
+
+def evaluate_rag_v2_dense_command(args: argparse.Namespace) -> int:
+    from .rag_v2_dense import evaluate_rag_v2_dense
+    root = project_root()
+    holdout_path = (root / args.holdout_cases).resolve() if args.holdout_cases else root / "metadata" / "rag_v2_vector_holdout_cases.jsonl"
+    model_dir = (root / args.model_dir).resolve() if args.model_dir else root / "data" / "models" / "rag_v2" / "BAAI__bge-m3"
+    npy_path = (root / args.npy_path).resolve() if args.npy_path else root / "data" / "processed" / "rag_v2" / "dense_embeddings.npy"
+    rows_path = (root / args.rows_path).resolve() if args.rows_path else root / "data" / "processed" / "rag_v2" / "dense_embedding_rows.jsonl"
+    manifest_path = (root / args.manifest_path).resolve() if args.manifest_path else root / "metadata" / "rag_v2_embedding_model_manifest.json"
+    chunks_path = (root / args.chunks).resolve() if args.chunks else root / "data" / "processed" / "rag_v2" / "chunks.jsonl"
+    report_path = (root / args.report_path).resolve() if args.report_path else root / "metadata" / "rag_v2_dense_baseline_report.md"
+
+    result = evaluate_rag_v2_dense(
+        holdout_path=holdout_path,
+        model_dir=model_dir,
+        npy_path=npy_path,
+        rows_path=rows_path,
+        manifest_path=manifest_path,
+        chunks_path=chunks_path,
+        report_path=report_path,
+        top_k=args.top_k,
+    )
+    print(json.dumps(result, ensure_ascii=False, indent=2))
+    return 0
+
+
+def search_rag_v2_hybrid_command(args: argparse.Namespace) -> int:
+    from .rag_v2_hybrid import search_rag_v2_hybrid
+    root = project_root()
+    chunks_path = (root / args.chunks).resolve() if getattr(args, "chunks", None) else root / "data" / "processed" / "rag_v2" / "chunks.jsonl"
+    quality_gate_path = (root / args.quality_gate).resolve() if getattr(args, "quality_gate", None) else root / "metadata" / "rag_v2_corpus_quality_gate.json"
+    fts_db_path = (root / args.fts_db).resolve() if getattr(args, "fts_db", None) else root / "data" / "processed" / "rag_v2" / "rag_v2_fts.sqlite"
+    model_dir = (root / args.model_dir).resolve() if getattr(args, "model_dir", None) else root / "data" / "models" / "rag_v2" / "BAAI__bge-m3"
+    npy_path = (root / args.npy_path).resolve() if getattr(args, "npy_path", None) else root / "data" / "processed" / "rag_v2" / "dense_embeddings.npy"
+    rows_path = (root / args.rows_path).resolve() if getattr(args, "rows_path", None) else root / "data" / "processed" / "rag_v2" / "dense_embedding_rows.jsonl"
+    manifest_path = (root / args.manifest_path).resolve() if getattr(args, "manifest_path", None) else root / "metadata" / "rag_v2_embedding_model_manifest.json"
+
+    hits = search_rag_v2_hybrid(
+        query=args.query,
+        limit=args.limit,
+        candidate_k=args.candidate_k,
+        chunks_path=chunks_path,
+        quality_gate_path=quality_gate_path,
+        fts_db_path=fts_db_path,
+        npy_path=npy_path,
+        rows_path=rows_path,
+        manifest_path=manifest_path,
+        model_dir=model_dir,
+        device=args.device,
+    )
+    if getattr(args, "json", False):
+        print(json.dumps([h.to_dict() for h in hits], ensure_ascii=False, indent=2))
+    else:
+        print(f"Found {len(hits)} hybrid hits for query: '{args.query}'")
+        for h in hits:
+            methods_str = "+".join(h.retrieval_methods)
+            ranks_str = f"fts={h.fts_rank or '-'}|dense={h.dense_rank or '-'}"
+            print(f"[{h.rank}] rrf={h.rrf_score:.5f} | methods={methods_str} ({ranks_str}) | chunk={h.chunk_id} | source={h.source_id}")
+            print(f"    Title: {h.title} ({' > '.join(h.heading_path)})")
+            snippet = h.text.replace("\n", " ")[:120]
+            print(f"    Snippet: {snippet}...")
+    return 0
+
+
+def evaluate_rag_v2_hybrid_command(args: argparse.Namespace) -> int:
+    from .rag_v2_hybrid import evaluate_rag_v2_hybrid
+    root = project_root()
+    golden_path = (root / args.golden_cases).resolve() if getattr(args, "golden_cases", None) else root / "metadata" / "rag_v2_retrieval_golden_cases.jsonl"
+    holdout_path = (root / args.holdout_cases).resolve() if getattr(args, "holdout_cases", None) else root / "metadata" / "rag_v2_vector_holdout_cases.jsonl"
+    chunks_path = (root / args.chunks).resolve() if getattr(args, "chunks", None) else root / "data" / "processed" / "rag_v2" / "chunks.jsonl"
+    quality_gate_path = (root / args.quality_gate).resolve() if getattr(args, "quality_gate", None) else root / "metadata" / "rag_v2_corpus_quality_gate.json"
+    fts_db_path = (root / args.fts_db).resolve() if getattr(args, "fts_db", None) else root / "data" / "processed" / "rag_v2" / "rag_v2_fts.sqlite"
+    model_dir = (root / args.model_dir).resolve() if getattr(args, "model_dir", None) else root / "data" / "models" / "rag_v2" / "BAAI__bge-m3"
+    npy_path = (root / args.npy_path).resolve() if getattr(args, "npy_path", None) else root / "data" / "processed" / "rag_v2" / "dense_embeddings.npy"
+    rows_path = (root / args.rows_path).resolve() if getattr(args, "rows_path", None) else root / "data" / "processed" / "rag_v2" / "dense_embedding_rows.jsonl"
+    manifest_path = (root / args.manifest_path).resolve() if getattr(args, "manifest_path", None) else root / "metadata" / "rag_v2_embedding_model_manifest.json"
+    report_path = (root / args.report_path).resolve() if getattr(args, "report_path", None) else root / "metadata" / "rag_v2_hybrid_baseline_report.md"
+
+    result = evaluate_rag_v2_hybrid(
+        golden_path=golden_path,
+        holdout_path=holdout_path,
+        report_path=report_path,
+        chunks_path=chunks_path,
+        quality_gate_path=quality_gate_path,
+        fts_db_path=fts_db_path,
+        npy_path=npy_path,
+        rows_path=rows_path,
+        manifest_path=manifest_path,
+        model_dir=model_dir,
+        device=args.device,
+    )
+    print(json.dumps(result, ensure_ascii=False, indent=2))
+    return 0
+
+
+def ask_rag_v2_command(args: argparse.Namespace) -> int:
+    from .rag_v2_answer import answer_rag_v2_question
+    root = project_root()
+    res = answer_rag_v2_question(
+        question=args.question,
+        limit=args.limit,
+        provider_name=args.provider,
+        project_root_dir=root,
+    )
+    payload = res.to_dict()
+    print(json.dumps(payload, ensure_ascii=False, indent=2))
+    return 0 if res.status in ("success", "insufficient_evidence", "safety_intercepted") else 1
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="Traceable RAG for coral-reef diving research")
     commands = parser.add_subparsers(dest="command", required=True)
@@ -365,6 +577,138 @@ def main() -> int:
     )
     bootstrap_parser.add_argument("--force", action="store_true", help="re-download existing public core files")
     bootstrap_parser.set_defaults(handler=bootstrap_command)
+
+    build_fts2_parser = commands.add_parser(
+        "build-rag-v2-fts",
+        help="build the isolated RAG v2 SQLite FTS5 database",
+    )
+    build_fts2_parser.add_argument("--chunks", help="optional chunks.jsonl path")
+    build_fts2_parser.add_argument("--quality-gate", help="optional quality gate json path")
+    build_fts2_parser.add_argument("--db-path", help="optional target SQLite output path")
+    build_fts2_parser.set_defaults(handler=build_rag_v2_fts_command)
+
+    search_fts2_parser = commands.add_parser(
+        "search-rag-v2-fts",
+        help="run parameterized search on the RAG v2 FTS5 database",
+    )
+    search_fts2_parser.add_argument("query", help="search query text")
+    search_fts2_parser.add_argument("--limit", type=int, default=5, help="maximum results to return (default 5)")
+    search_fts2_parser.add_argument("--db-path", help="optional SQLite database path")
+    search_fts2_parser.add_argument("--json", action="store_true", help="output results as JSON")
+    search_fts2_parser.set_defaults(handler=search_rag_v2_fts_command)
+
+    eval_fts2_parser = commands.add_parser(
+        "evaluate-rag-v2-fts",
+        help="evaluate RAG v2 FTS5 against golden benchmark cases",
+    )
+    eval_fts2_parser.add_argument("--golden-cases", help="optional golden cases JSONL path")
+    eval_fts2_parser.add_argument("--db-path", help="optional SQLite database path")
+    eval_fts2_parser.add_argument("--report-path", help="optional output markdown report path")
+    eval_fts2_parser.add_argument("--top-k", type=int, default=3, help="evaluation Top-K (default 3)")
+    eval_fts2_parser.set_defaults(handler=evaluate_rag_v2_fts_command)
+
+    download_model_parser = commands.add_parser(
+        "download-rag-v2-embedding-model",
+        help="sole authorized network command to download the approved BAAI/bge-m3 embedding model",
+    )
+    download_model_parser.add_argument(
+        "--confirm-download", action="store_true",
+        help="required acknowledgement to download the approved model locally",
+    )
+    download_model_parser.set_defaults(handler=download_rag_v2_embedding_model_command)
+
+    build_dense_parser = commands.add_parser(
+        "build-rag-v2-dense",
+        help="build the isolated RAG v2 dense embedding matrix and sidecar metadata (strictly offline)",
+    )
+    build_dense_parser.add_argument("--chunks", help="optional chunks.jsonl path")
+    build_dense_parser.add_argument("--quality-gate", help="optional quality gate json path")
+    build_dense_parser.add_argument("--model-dir", help="optional model directory path")
+    build_dense_parser.add_argument("--npy-path", help="optional target .npy path")
+    build_dense_parser.add_argument("--rows-path", help="optional target rows .jsonl path")
+    build_dense_parser.add_argument("--manifest-path", help="optional target manifest.json path")
+    build_dense_parser.add_argument("--batch-size", type=int, default=4, help="batch size for embedding (default 4)")
+    build_dense_parser.add_argument("--device", default="auto", choices=["auto", "cuda", "cpu"], help="execution device (default auto)")
+    build_dense_parser.set_defaults(handler=build_rag_v2_dense_command)
+
+    search_dense_parser = commands.add_parser(
+        "search-rag-v2-dense",
+        help="run Cosine Similarity dense retrieval over RAG v2 sidecar index",
+    )
+    search_dense_parser.add_argument("query", help="search query text")
+    search_dense_parser.add_argument("--limit", type=int, default=3, help="maximum results to return (default 3)")
+    search_dense_parser.add_argument("--model-dir", help="optional model directory path")
+    search_dense_parser.add_argument("--npy-path", help="optional embeddings .npy path")
+    search_dense_parser.add_argument("--rows-path", help="optional rows .jsonl path")
+    search_dense_parser.add_argument("--manifest-path", help="optional manifest.json path")
+    search_dense_parser.add_argument("--chunks", help="optional chunks.jsonl path")
+    search_dense_parser.add_argument("--json", action="store_true", help="output results as JSON")
+    search_dense_parser.set_defaults(handler=search_rag_v2_dense_command)
+
+    eval_dense_parser = commands.add_parser(
+        "evaluate-rag-v2-dense",
+        help="evaluate dense-only retrieval against cross-language holdout benchmark cases",
+    )
+    eval_dense_parser.add_argument("--holdout-cases", help="optional holdout cases JSONL path")
+    eval_dense_parser.add_argument("--model-dir", help="optional model directory path")
+    eval_dense_parser.add_argument("--npy-path", help="optional embeddings .npy path")
+    eval_dense_parser.add_argument("--rows-path", help="optional rows .jsonl path")
+    eval_dense_parser.add_argument("--manifest-path", help="optional manifest.json path")
+    eval_dense_parser.add_argument("--chunks", help="optional chunks.jsonl path")
+    eval_dense_parser.add_argument("--report-path", help="optional output markdown report path")
+    eval_dense_parser.add_argument("--top-k", type=int, default=3, help="evaluation Top-K (default 3)")
+    eval_dense_parser.set_defaults(handler=evaluate_rag_v2_dense_command)
+
+    search_hybrid_parser = commands.add_parser(
+        "search-rag-v2-hybrid",
+        help="run parallel FTS5 and Dense retrieval fused by Reciprocal Rank Fusion (RRF)",
+    )
+    search_hybrid_parser.add_argument("query", help="search query text")
+    search_hybrid_parser.add_argument("--limit", type=int, default=3, help="maximum results to return (default 3)")
+    search_hybrid_parser.add_argument("--candidate-k", type=int, default=8, help="candidates to retrieve per side (default 8)")
+    search_hybrid_parser.add_argument("--chunks", help="optional chunks.jsonl path")
+    search_hybrid_parser.add_argument("--quality-gate", help="optional quality gate json path")
+    search_hybrid_parser.add_argument("--fts-db", help="optional FTS SQLite database path")
+    search_hybrid_parser.add_argument("--model-dir", help="optional model directory path")
+    search_hybrid_parser.add_argument("--npy-path", help="optional embeddings .npy path")
+    search_hybrid_parser.add_argument("--rows-path", help="optional rows .jsonl path")
+    search_hybrid_parser.add_argument("--manifest-path", help="optional manifest.json path")
+    search_hybrid_parser.add_argument("--device", default="auto", choices=["auto", "cuda", "cpu"], help="execution device (default auto)")
+    search_hybrid_parser.add_argument("--json", action="store_true", help="output results as JSON")
+    search_hybrid_parser.set_defaults(handler=search_rag_v2_hybrid_command)
+
+    eval_hybrid_parser = commands.add_parser(
+        "evaluate-rag-v2-hybrid",
+        help="evaluate hybrid retrieval against both golden cases and cross-language holdout cases",
+    )
+    eval_hybrid_parser.add_argument("--golden-cases", help="optional golden cases JSONL path")
+    eval_hybrid_parser.add_argument("--holdout-cases", help="optional holdout cases JSONL path")
+    eval_hybrid_parser.add_argument("--chunks", help="optional chunks.jsonl path")
+    eval_hybrid_parser.add_argument("--quality-gate", help="optional quality gate json path")
+    eval_hybrid_parser.add_argument("--fts-db", help="optional FTS SQLite database path")
+    eval_hybrid_parser.add_argument("--model-dir", help="optional model directory path")
+    eval_hybrid_parser.add_argument("--npy-path", help="optional embeddings .npy path")
+    eval_hybrid_parser.add_argument("--rows-path", help="optional rows .jsonl path")
+    eval_hybrid_parser.add_argument("--manifest-path", help="optional manifest.json path")
+    eval_hybrid_parser.add_argument("--report-path", help="optional output markdown report path")
+    eval_hybrid_parser.add_argument("--device", default="auto", choices=["auto", "cuda", "cpu"], help="execution device (default auto)")
+    eval_hybrid_parser.set_defaults(handler=evaluate_rag_v2_hybrid_command)
+
+    ask_v2_parser = commands.add_parser(
+        "ask-rag-v2",
+        help="ask a question with RAG v2 Hybrid evidence and server-bound citations in Traditional Chinese",
+    )
+    ask_v2_parser.add_argument("question", help="user question text")
+    ask_v2_parser.add_argument(
+        "--provider",
+        choices=["env", "disabled", "iai", "gemini"],
+        default="env",
+        help="registered LLM provider configuration to use (default env)",
+    )
+    ask_v2_parser.add_argument("--limit", type=int, default=3, help="number of hybrid evidence chunks to retrieve (default 3)")
+    ask_v2_parser.add_argument("--json", action="store_true", help="output formatted JSON only")
+    ask_v2_parser.set_defaults(handler=ask_rag_v2_command)
+
     args = parser.parse_args()
     return args.handler(args)
 

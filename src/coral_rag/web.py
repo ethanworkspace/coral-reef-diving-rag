@@ -31,6 +31,7 @@ from .settings import Settings
 from .store import FTSIndexNotReadyError, FTSUnavailableError, KnowledgeStore
 from .research_assistant import run_research_assistant
 from .research_chat import remaining_model_calls, run_research_chat
+from .rag_v2_answer import answer_rag_v2_question
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -39,6 +40,12 @@ STATIC_ROOT = PACKAGE_ROOT / "static"
 TEMPLATE_ROOT = PACKAGE_ROOT / "templates"
 app = FastAPI(title="珊瑚礁浮潛與水肺潛水研究支援", docs_url=None, redoc_url=None)
 app.mount("/static", StaticFiles(directory=STATIC_ROOT), name="static")
+
+
+class RagV2AskRequest(BaseModel):
+    question: str = Field(min_length=2, max_length=1000)
+
+    model_config = {"extra": "forbid"}
 
 
 class QueryRequest(BaseModel):
@@ -412,6 +419,49 @@ def full_text_search(
             headers={"Cache-Control": "no-store"},
         )
     return JSONResponse(payload, headers={"Cache-Control": "no-store"})
+
+
+@app.post("/api/rag-v2/ask")
+def ask_rag_v2(request: RagV2AskRequest) -> JSONResponse:
+    """Execute controlled RAG v2 question answering with server-side citation binding.
+
+    Response adheres strictly to a 4-field whitelist:
+    status, answer_zh_hant, citations, safety_route.
+    Internal diagnostics such as retrieval_summary or used_chunk_ids are not exposed to the browser.
+    """
+    clean_q = request.question.strip()
+    if len(clean_q) < 2:
+        return JSONResponse(
+            {
+                "status": "safety_intercepted",
+                "answer_zh_hant": "提問內容過短，請輸入至少 2 個有效字元。",
+                "citations": [],
+                "safety_route": "empty_query",
+            },
+            status_code=400,
+            headers={"Cache-Control": "no-store"},
+        )
+
+    try:
+        result = answer_rag_v2_question(question=clean_q, provider_name="env")
+        payload = {
+            "status": result.status,
+            "answer_zh_hant": result.answer_zh_hant,
+            "citations": [c.to_dict() if hasattr(c, "to_dict") else c for c in result.citations],
+            "safety_route": result.safety_route,
+        }
+        return JSONResponse(payload, headers={"Cache-Control": "no-store"})
+    except Exception:
+        return JSONResponse(
+            {
+                "status": "internal_error",
+                "answer_zh_hant": "伺服器處理問答時發生異常，請稍後再試。",
+                "citations": [],
+                "safety_route": None,
+            },
+            status_code=500,
+            headers={"Cache-Control": "no-store"},
+        )
 
 
 @app.get("/", response_class=HTMLResponse)

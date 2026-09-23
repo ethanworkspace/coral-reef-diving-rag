@@ -10,6 +10,8 @@ secrets/
 # Generated indexes, logs, and large raw data
 data/processed/*.sqlite
 data/processed/*.jsonl
+data/processed/rag_v2/*.npy
+data/models/
 data/runtime/
 data/raw/external/*
 !data/raw/external/.gitkeep

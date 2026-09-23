@@ -1,0 +1,339 @@
+# RAG v2 資料契約 (Data Contract)
+# 基準日：2026-09-22
+# 本檔案定義每筆進入 RAG v2 系統的資料來源必須攜帶的後設資料欄位與驗證規則。
+
+schema_version: 2
+created_at: "2026-09-22"
+description: >
+  RAG v2 資料契約。定義四種 ingestion_route 的共用與專屬欄位驗證規則。
+  此契約不改變既有 SQLite schema、API 或下載流程。
+
+# ---------------------------------------------------------------------------
+# 欄位定義
+# ---------------------------------------------------------------------------
+fields:
+  - name: source_id
+    type: string
+    required: true
+    description: 全域唯一來源識別碼，跨次匯入不變。
+
+  - name: title
+    type: string
+    required: true
+    description: 來源的正式名稱。
+
+  - name: source_type
+    type: string
+    required: true
+    description: >
+      來源類型。例：official_api, official_open_data, biodiversity_occurrence_archive,
+      webpage_snapshot, user_provided_pdf, curated_text。
+
+  - name: language
+    type: string
+    required: true
+    allowed_values: ["zh", "en", "multilingual"]
+    description: 原文語言。可回答文件僅允許 zh、en、multilingual。
+
+  - name: ingestion_route
+    type: string
+    required: true
+    allowed_values:
+      - document_rag
+      - structured_evidence
+      - live_or_time_series_tool
+      - excluded_or_link_only
+    description: 資料進入系統的路徑分類。
+
+  - name: license_or_terms
+    type: string
+    required: true
+    description: 授權條件或使用條款摘要。
+
+  - name: reuse_status
+    type: string
+    required: true
+    allowed_values:
+      - public_summary
+      - link_only
+      - pending_review
+      - excluded
+      - untracked
+    description: 可重用狀態，與 knowledge_source_registry.csv 的 recommended_status 對齊。
+
+  - name: source_url
+    type: string
+    required: false
+    format: https_url
+    description: 原始 HTTPS 來源 URL。document_rag 路徑為必填。
+
+  - name: acquired_at
+    type: string
+    required: true
+    format: iso8601_datetime
+    description: 資料取得時間 (ISO 8601)。
+
+  - name: published_at
+    type: string
+    required: false
+    format: iso8601_date_or_unknown
+    description: 來源的發布或修訂日期。
+
+  - name: effective_from
+    type: string
+    required: false
+    format: iso8601_date
+    description: 生效起始日期。structured_evidence 路徑為必填。
+
+  - name: effective_to
+    type: string
+    required: false
+    format: iso8601_date_or_null
+    description: 生效結束日期。structured_evidence 路徑為必填；null 表示仍在生效中。
+
+  - name: geographic_coverage
+    type: string
+    required: false
+    description: 地理涵蓋範圍描述（例：全臺沿海、墾丁國家公園、綠島）。
+
+  - name: crs
+    type: string
+    required: false
+    default: "EPSG:4326"
+    description: 空間坐標參考系統。structured_evidence 路徑為必填，一律使用 WGS84。
+
+  - name: time_zone
+    type: string
+    required: false
+    default: "UTC+8"
+    description: 時間呈現時區。live_or_time_series_tool 保留原始時區並以 UTC+8 呈現。
+
+  - name: risk_level
+    type: string
+    required: true
+    allowed_values: ["低", "中", "高", "極高"]
+    description: 內容風險等級。
+
+  - name: may_embed
+    type: boolean
+    required: true
+    description: >
+      是否可建立 embedding 進入向量索引。
+      live_or_time_series_tool 必須為 false。
+
+  - name: may_generate_answer
+    type: boolean
+    required: true
+    description: >
+      是否可作為 LLM 回答的證據來源。
+      excluded_or_link_only 必須為 false。
+
+  - name: limitations
+    type: string
+    required: false
+    description: 使用限制與注意事項。
+
+  - name: checksum
+    type: string
+    required: false
+    format: sha256
+    description: 來源檔案 SHA-256 校驗碼。document_rag 路徑為必填。
+
+  - name: reviewed_at
+    type: string
+    required: false
+    format: iso8601_date
+    description: 最後一次人工審閱日期。
+
+# ---------------------------------------------------------------------------
+# 路徑專屬驗證規則
+# ---------------------------------------------------------------------------
+route_validations:
+
+  document_rag:
+    description: 已確認可重用的中英文文本，可建立 FTS、向量索引與 reranker。
+    required_fields:
+      - source_id
+      - title
+      - source_type
+      - language
+      - ingestion_route
+      - license_or_terms
+      - reuse_status
+      - source_url        # document_rag 必填
+      - acquired_at
+      - risk_level
+      - may_embed
+      - may_generate_answer
+      - checksum           # document_rag 必填
+    constraints:
+      - field: may_embed
+        condition: "== true"
+        reason: 此路徑允許建立 embedding。
+      - field: language
+        condition: "in [zh, en, multilingual]"
+        reason: 可回答文件語言限制。
+
+  structured_evidence:
+    description: >
+      eDNA、魚類、Reef Check、GIS、保護區、調查表。
+      不轉成文本 chunk；僅以條件查詢方式提供歷史證據。
+    required_fields:
+      - source_id
+      - title
+      - source_type
+      - language
+      - ingestion_route
+      - license_or_terms
+      - reuse_status
+      - acquired_at
+      - effective_from     # structured_evidence 必填
+      - effective_to       # structured_evidence 必填
+      - crs                # structured_evidence 必填
+      - risk_level
+      - may_embed
+      - may_generate_answer
+    constraints:
+      - field: crs
+        condition: "== EPSG:4326"
+        reason: 空間資料統一使用 WGS84。
+
+  live_or_time_series_tool:
+    description: >
+      CWA、海保署、WRA 的海氣象／潮汐／波流等時序資料。
+      不放進 RAG 文件庫。
+    required_fields:
+      - source_id
+      - title
+      - source_type
+      - language
+      - ingestion_route
+      - license_or_terms
+      - reuse_status
+      - acquired_at
+      - risk_level
+      - may_embed
+      - may_generate_answer
+    constraints:
+      - field: may_embed
+        condition: "== false"
+        reason: 時序工具資料不可建立 embedding。
+      - field: time_zone
+        condition: "present"
+        reason: 時序資料必須標示時區。
+
+  excluded_or_link_only:
+    description: >
+      未確認授權的教材、證照內容、醫療、救援、潛水操作程序、
+      內部研究規劃、合成問答資料。不得作為模型回答證據。
+    required_fields:
+      - source_id
+      - title
+      - source_type
+      - language
+      - ingestion_route
+      - license_or_terms
+      - reuse_status
+      - acquired_at
+      - risk_level
+      - may_embed
+      - may_generate_answer
+    constraints:
+      - field: may_generate_answer
+        condition: "== false"
+        reason: 排除或僅連結來源不可作為回答證據。
+      - field: may_embed
+        condition: "== false"
+        reason: 排除或僅連結來源不可建立 embedding。
+
+# ---------------------------------------------------------------------------
+# 範例紀錄
+# ---------------------------------------------------------------------------
+examples:
+  - source_id: oca_coral_reef_ecosystem
+    title: 海洋保育署珊瑚礁生態系介紹
+    source_type: official_open_data
+    language: zh
+    ingestion_route: document_rag
+    license_or_terms: "OGL 1.0"
+    reuse_status: public_summary
+    source_url: "https://www.oca.gov.tw/ch/home.jsp?id=291&parentpath=0,4,290"
+    acquired_at: "2026-09-19"
+    published_at: unknown
+    effective_from: null
+    effective_to: null
+    geographic_coverage: 臺灣周邊海域
+    crs: null
+    time_zone: null
+    risk_level: 低
+    may_embed: true
+    may_generate_answer: true
+    limitations: 不代表目前物種可見性或特定地點生態承諾。
+    checksum: "a1b2c3d4e5f6..."
+    reviewed_at: "2026-09-19"
+
+  - source_id: oca_edna
+    title: 臺灣周邊海域環境 DNA 採樣調查資料
+    source_type: official_open_data
+    language: zh
+    ingestion_route: structured_evidence
+    license_or_terms: "OGL 1.0"
+    reuse_status: public_summary
+    source_url: "https://data.gov.tw/en/datasets/172487"
+    acquired_at: "2026-09-18"
+    published_at: unknown
+    effective_from: "2020-01-01"
+    effective_to: "2026-09-18"
+    geographic_coverage: 臺灣周邊海域
+    crs: "EPSG:4326"
+    time_zone: "UTC+8"
+    risk_level: 中
+    may_embed: false
+    may_generate_answer: true
+    limitations: 歷史採樣證據，不代表目前可見物種。
+    checksum: null
+    reviewed_at: "2026-09-18"
+
+  - source_id: cwa_marine_wave_current
+    title: CWA 休閒海域波浪與海流模式預報資料
+    source_type: official_authenticated_api
+    language: zh
+    ingestion_route: live_or_time_series_tool
+    license_or_terms: 需 CWA 授權碼
+    reuse_status: link_only
+    source_url: "https://opendata.cwa.gov.tw/dataset/observation/M-B0078-001"
+    acquired_at: "2026-09-18"
+    published_at: null
+    effective_from: null
+    effective_to: null
+    geographic_coverage: 臺灣近岸海域
+    crs: "EPSG:4326"
+    time_zone: "UTC+8"
+    risk_level: 高
+    may_embed: false
+    may_generate_answer: false
+    limitations: 即時資料受 6 小時新鮮度規則約束；不得提供下水安全判定。
+    checksum: null
+    reviewed_at: "2026-09-18"
+
+  - source_id: cmas_instructor_manual_2023
+    title: CMAS 教練手冊 2023 中文版
+    source_type: user_provided_pdf
+    language: zh
+    ingestion_route: excluded_or_link_only
+    license_or_terms: "CMAS 版權，未取得再發布許可"
+    reuse_status: excluded
+    source_url: null
+    acquired_at: "2026-09-18"
+    published_at: "2023-01-01"
+    effective_from: null
+    effective_to: null
+    geographic_coverage: null
+    crs: null
+    time_zone: null
+    risk_level: 高
+    may_embed: false
+    may_generate_answer: false
+    limitations: 不得複製、改寫或作為回答依據。
+    checksum: null
+    reviewed_at: "2026-09-18"

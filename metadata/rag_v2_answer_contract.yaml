@@ -1,0 +1,81 @@
+schema_version: "2.0.0"
+contract_type: "rag_v2_answer_contract"
+updated_at: "2026-09-23T18:56:00+08:00"
+status: "active"
+
+architecture:
+  name: "RAG v2 Answer Service with Server-side Citation Binding"
+  description: "Server-enforced Traditional Chinese QA service over Hybrid Top-3 evidence. LLM produces structured status and evidence tags; citations are strictly resolved and bound by the server."
+  evidence_source:
+    type: "rag_v2_hybrid_top3"
+    evidence_tags: ["E1", "E2", "E3"]
+    immutable_artifacts: true
+
+llm_contract:
+  target_language: "zh-Hant"
+  output_format: "strict_json_object"
+  allowed_statuses:
+    - "answerable"
+    - "insufficient_evidence"
+  schema:
+    answerable:
+      status: "answerable"
+      answer_zh_hant: "繁體中文回答，嚴禁內嵌 URL、Markdown 連結或 [E1] 等引用字樣"
+      supporting_evidence_ids: ["E1", "E2"]
+    insufficient_evidence:
+      status: "insufficient_evidence"
+      answer_zh_hant: ""
+      supporting_evidence_ids: []
+  server_fallback_text: "目前知識庫沒有足夠可靠資料回答此問題。"
+
+prohibitions:
+  model_inline_citations:
+    forbidden_patterns:
+      - "http:// 或 https://"
+      - "[text](url) 形式的 Markdown 連結"
+      - "[E1], [E2], (E1), (E2) 等括號形式的證據標籤"
+      - "自製網址或外部引用名稱"
+    enforcement: "fail_closed_if_detected"
+  scope_restrictions:
+    - "即時海象與浪高預報"
+    - "當前下水安全判定"
+    - "現行水域許可與管制法規判定"
+    - "潛水醫療處置與減壓病急救"
+    - "潛水證照培訓與資格認定"
+    - "緊急救援操作步驟"
+
+safety_routing:
+  policy: "safety_first_intercept_before_rag"
+  categories:
+    realtime_marine:
+      trigger_patterns: ["浪高", "海流", "浪況", "下水結論", "適合下水嗎", "即時海象"]
+      action: "redirect_official_realtime"
+    regulations:
+      trigger_patterns: ["現行許可", "管制", "活動限制", "個別合法"]
+      action: "redirect_official_regulations"
+    medical_rescue:
+      trigger_patterns: ["頭痛", "減壓病", "失去意識", "急救", "救援步驟", "胸口不舒服"]
+      action: "redirect_professional_medical"
+    qualification:
+      trigger_patterns: ["證照", "一星", "初學者資格", "沒有證照", "夜潛資格"]
+      action: "redirect_professional_qualification"
+    prompt_injection:
+      trigger_patterns: ["忽略限制", "系統提示詞", "API_KEY", "秘密", "本機檔案"]
+      action: "refuse_security"
+
+citation_binding:
+  enforcement: "server_side_only"
+  required_citation_fields:
+    - "citation_id"
+    - "chunk_id"
+    - "source_id"
+    - "title"
+    - "heading_path"
+    - "source_url"
+    - "language"
+
+cli_controls:
+  command: "ask-rag-v2"
+  allowed_providers: ["env", "disabled", "iai", "gemini"]
+  external_endpoints_forbidden: true
+  device_argument_forbidden: true

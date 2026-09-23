@@ -1,0 +1,71 @@
+schema_version: "2.0.0"
+contract_type: "rag_v2_hybrid_retrieval_contract"
+updated_at: "2026-09-23T18:45:00+08:00"
+status: "active"
+
+architecture:
+  name: "RAG v2 Reciprocal Rank Fusion Hybrid Retrieval"
+  description: "Deterministic, parallel hybrid retrieval combining SQLite FTS5 lexical search and local BAAI/bge-m3 dense cosine similarity sidecar via Reciprocal Rank Fusion (RRF)."
+  lexical_retriever:
+    type: "sqlite_fts5"
+    db_path: "data/processed/rag_v2/rag_v2_fts.sqlite"
+    candidate_k: 8
+    tokenizer: "unicode61 + CJK Bigrams & Latin terms"
+  dense_retriever:
+    type: "dense_sidecar"
+    model_id: "BAAI/bge-m3"
+    model_revision: "5617a9f61b028005a4858fdac845db406aefb181"
+    embedding_dimension: 1024
+    candidate_k: 8
+    offline_only: true
+    npy_path: "data/processed/rag_v2/dense_embeddings.npy"
+    rows_path: "data/processed/rag_v2/dense_embedding_rows.jsonl"
+    manifest_path: "metadata/rag_v2_embedding_model_manifest.json"
+
+fusion_policy:
+  algorithm: "reciprocal_rank_fusion"
+  constant_k: 60
+  formula: "rrf_score = sum(1.0 / (60 + rank_m)) for m in {fts, dense}"
+  tie_breaking: "sort by (-rrf_score, chunk_id) ascending"
+  deduplication: "chunk_id level exact match, aggregating method presence and ranks"
+  default_search_limit: 3
+
+precondition_validation:
+  mode: "strict_fail_closed"
+  must_validate_before_query: true
+  quality_gate_file: "metadata/rag_v2_corpus_quality_gate.json"
+  expected_gate_status: "quality_gate_met"
+  five_way_checksum_verification:
+    - "data/processed/rag_v2/chunks.jsonl"
+    - "data/processed/rag_v2/rag_v2_fts.sqlite"
+    - "data/processed/rag_v2/dense_embeddings.npy"
+    - "data/processed/rag_v2/dense_embedding_rows.jsonl"
+    - "metadata/rag_v2_embedding_model_manifest.json"
+  blocked_sources_policy: "strictly_reject_from_candidates_and_outputs"
+  offline_boundary_policy: "strict_local_files_only_no_network_requests"
+
+acceptance_criteria:
+  golden_benchmark:
+    file: "metadata/rag_v2_retrieval_golden_cases.jsonl"
+    retrievable_cases_count: 13
+    hard_quality_gates:
+      target_hit_at_3: 1.0000
+      target_mrr_at_3: 1.0000
+    known_cross_language_gaps:
+      count: 2
+      evaluation_policy: "observation_only_not_counted_in_hit_or_mrr_denominator"
+      interpretation_warning: "Hybrid recall on known gaps must NOT be interpreted as newly certified factual evidence."
+  holdout_benchmark:
+    file: "metadata/rag_v2_vector_holdout_cases.jsonl"
+    total_cases_count: 10
+    tuning_allowed: false
+    hard_quality_gates:
+      target_hit_at_3_min: 0.9000
+      target_mrr_at_3_min: 0.8000
+
+invariance_guarantees:
+  rechunking_forbidden: true
+  reembedding_forbidden: true
+  model_redownload_forbidden: true
+  text_generation_forbidden: true
+  translation_forbidden: true

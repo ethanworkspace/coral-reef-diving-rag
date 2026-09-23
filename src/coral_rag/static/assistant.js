@@ -1,5 +1,6 @@
 "use strict";
 
+// 既有相容模組：Gemini RAG 研究摘要功能腳本（相容性保留，/assistant 頁面已遷移至 rag_v2_chat.js）
 (() => {
   const form = document.querySelector("#assistant-form");
   const site = document.querySelector("#site");
