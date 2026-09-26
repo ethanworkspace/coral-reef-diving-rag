@@ -1,0 +1,331 @@
+openapi: 3.0.3
+info:
+  title: 中央氣象署 M-B0078-001 附近海域模式參考 API 契約規範
+  description: >-
+    提供潛點鄰近之中央氣象署近岸海象數值模式（M-B0078-001）代表外海計算點之波浪與海流預報背景資訊。
+    本端點明確界定為「宏觀海域數值模式背景參考」，絕非潛點現地量測數據，不得單獨用於判斷合法性、安全性或下水適合度。
+  version: 1.0.0
+paths:
+  /api/dive-sites/{site_id}/nearby-marine-context:
+    get:
+      summary: 取得潛點鄰近海域數值模式波流預報背景資訊
+      description: >-
+        依據潛點法定 WGS84 座標，匹配最近之中央氣象署 M-B0078-001 數值模式外海計算點，
+        分開輸出潛點座標與模式位置座標，並標明兩點直線距離與模式免責聲明。
+      parameters:
+        - name: site_id
+          in: path
+          required: true
+          description: 正式潛點唯一識別碼（如 tourism-attraction-376540000a-000365）
+          schema:
+            type: string
+            example: tourism-attraction-376540000a-000365
+        - name: start_at
+          in: query
+          required: false
+          description: 查詢起始時間（需帶時區之 ISO 8601 字串，包含端點）
+          schema:
+            type: string
+            format: date-time
+            example: "2026-09-25T16:00:00+08:00"
+        - name: end_at
+          in: query
+          required: false
+          description: 查詢截止時間（需帶時區之 ISO 8601 字串，不包含端點，最大查詢間隔 72 小時）
+          schema:
+            type: string
+            format: date-time
+            example: "2026-09-28T16:00:00+08:00"
+      responses:
+        '200':
+          description: 成功取得鄰近海域數值模式預報資訊
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NearbyMarineContextResponse'
+        '404':
+          description: 找不到指定的潛點識別碼
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
+          description: 查詢時間範圍格式無效或超過 72 小時限制
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '503':
+          description: 來源快照遺失、檔案雜湊不符、資料過期或無效（Fail-Closed 阻擋）
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  schemas:
+    NearbyMarineContextResponse:
+      type: object
+      required:
+        - status
+        - data_classification
+        - dive_site
+        - nearby_model_location
+        - source
+        - query
+        - items
+        - disclaimers
+      properties:
+        status:
+          type: string
+          enum: [ok]
+        data_classification:
+          type: string
+          enum: [nearby_numerical_model_context_not_in_situ_observation]
+          description: 資料分類宣告，確認非潛點現地量測
+        dive_site:
+          type: object
+          required:
+            - id
+            - name
+            - latitude
+            - longitude
+            - coordinate_reference_system
+          properties:
+            id:
+              type: string
+            name:
+              type: string
+            latitude:
+              type: number
+              format: float
+            longitude:
+              type: number
+              format: float
+            coordinate_reference_system:
+              type: string
+              example: WGS84
+            administrative_area:
+              type: object
+              properties:
+                county:
+                  type: string
+                district:
+                  type: string
+        nearby_model_location:
+          type: object
+          required:
+            - location_code
+            - location_name
+            - latitude
+            - longitude
+            - distance_m
+            - distance_km
+            - distance_calculation_method
+            - location_nature
+          properties:
+            location_code:
+              type: string
+              example: N01900
+            location_name:
+              type: string
+              example: 石朗海域
+            latitude:
+              type: number
+              format: float
+              example: 22.65
+            longitude:
+              type: number
+              format: float
+              example: 121.45
+            distance_m:
+              type: number
+              format: float
+              description: 與潛點座標之大圓距離（公尺）
+              example: 2598.67
+            distance_km:
+              type: number
+              format: float
+              description: 與潛點座標之大圓距離（公里）
+              example: 2.6
+            distance_calculation_method:
+              type: string
+              example: Haversine on WGS84 coordinates
+            location_nature:
+              type: string
+              example: 氣象署近岸數值模式預報代表外海計算點，非潛點現地量測
+        source:
+          type: object
+          required:
+            - provider
+            - dataset_id
+            - dataset_name
+            - official_catalog_url
+            - issued_at
+            - valid_from
+            - valid_to
+            - retrieved_at
+            - provenance
+            - license
+          properties:
+            provider:
+              type: string
+              example: 交通部中央氣象署 (CWA)
+            dataset_id:
+              type: string
+              example: M-B0078-001
+            dataset_name:
+              type: string
+            official_catalog_url:
+              type: string
+            model_name:
+              type: string
+            issued_at:
+              type: string
+              format: date-time
+            valid_from:
+              type: string
+              format: date-time
+            valid_to:
+              type: string
+              format: date-time
+            retrieved_at:
+              type: string
+              format: date-time
+            provenance:
+              type: object
+              required:
+                - snapshot_file
+                - sidecar_file
+                - sha256
+                - verification_status
+              properties:
+                snapshot_file:
+                  type: string
+                sidecar_file:
+                  type: string
+                sha256:
+                  type: string
+                verification_status:
+                  type: string
+                  example: verified
+            license:
+              type: object
+              properties:
+                name:
+                  type: string
+                  example: 政府資料開放授權條款第 1 版 (OGL 1.0)
+                url:
+                  type: string
+                  example: https://data.gov.tw/license
+        query:
+          type: object
+          required:
+            - start_at
+            - end_at
+            - item_count
+          properties:
+            start_at:
+              type: string
+              format: date-time
+            end_at:
+              type: string
+              format: date-time
+            item_count:
+              type: integer
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/ForecastItem'
+        disclaimers:
+          type: array
+          items:
+            type: string
+
+    ForecastItem:
+      type: object
+      required:
+        - valid_at
+        - significant_wave_height_m
+        - wave_direction
+        - wave_period_s
+        - ocean_current_direction
+        - ocean_current_speed_knot
+        - units
+      properties:
+        valid_at:
+          type: string
+          format: date-time
+        significant_wave_height_m:
+          type: number
+          nullable: true
+          description: 有效波高（公尺）
+        wave_direction:
+          type: string
+          nullable: true
+          description: 預報波向（16方位文字標示）
+        wave_period_s:
+          type: number
+          nullable: true
+          description: 波浪週期（秒）
+        ocean_current_direction:
+          type: string
+          nullable: true
+          description: 預報海流流向（16方位文字標示）
+        ocean_current_speed_knot:
+          type: number
+          nullable: true
+          description: 預報海流流速（節）
+        raw_current_speed:
+          type: string
+          nullable: true
+          description: 原始字串（例如 < 0.10）
+        units:
+          type: object
+          properties:
+            significant_wave_height:
+              type: string
+              example: m
+            wave_direction:
+              type: string
+              example: 16-azimuth-compass
+            wave_period:
+              type: string
+              example: s
+            ocean_current_direction:
+              type: string
+              example: 16-azimuth-compass
+            ocean_current_speed:
+              type: string
+              example: knot
+
+    ErrorResponse:
+      type: object
+      required:
+        - status
+        - data_classification
+        - reason
+        - items
+        - item_count
+        - disclaimers
+      properties:
+        status:
+          type: string
+          enum: [unavailable]
+        data_classification:
+          type: string
+          enum: [nearby_numerical_model_context_not_in_situ_observation]
+        reason:
+          type: string
+          description: 失敗原因代碼（dive_site_not_found, source_expired, source_checksum_mismatch, no_source_snapshot_found 等）
+        items:
+          type: array
+          items: {}
+          example: []
+        item_count:
+          type: integer
+          example: 0
+        disclaimers:
+          type: array
+          items:
+            type: string

@@ -498,6 +498,680 @@ footer p { margin: 0; }
   border: 0 !important;
 }
 
+.nearby-marine-heading-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.nearby-marine-heading-row h3 {
+  margin: 0;
+  color: var(--ocean-dark);
+}
+
+.nearby-marine-status {
+  margin: 0.75rem 0 0;
+  color: var(--muted);
+  font-weight: 700;
+}
+
+.nearby-marine-meta {
+  margin-top: 0.85rem;
+}
+
+.nearby-marine-items-container {
+  margin-top: 1rem;
+}
+
+.nearby-marine-items-container h4,
+.nearby-marine-limitations h4 {
+  margin: 0.75rem 0 0.5rem;
+  font-size: 0.95rem;
+  color: var(--ink);
+}
+
+.nearby-marine-limitations {
+  margin-top: 1rem;
+  border-top: 1px dashed var(--line);
+  padding-top: 0.75rem;
+}
+
+.nearby-marine-limitations ul {
+  margin: 0.5rem 0 0;
+  padding-left: 1.25rem;
+}
+
+.species-reference-heading-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.species-reference-heading-row h3 {
+  margin: 0;
+  color: var(--ocean-dark);
+}
+
+.species-reference-status {
+  margin: 0.75rem 0 0;
+  color: var(--muted);
+  font-weight: 700;
+}
+
+.species-reference-notice {
+  margin-top: 0.75rem;
+  padding: 0.5rem 0.75rem;
+  background-color: #fff8e1;
+  border-left: 4px solid #f57f17;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #5d4037;
+}
+
+.species-reference-notice .warning-tag {
+  background-color: #f57f17;
+  color: #fff;
+  padding: 0.15rem 0.4rem;
+  border-radius: 3px;
+  font-size: 0.75rem;
+}
+
+.species-reference-card-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  margin-top: 1rem;
+}
+
+.species-reference-card {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background-color: #ffffff;
+  padding: 1rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.species-card-header {
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.species-card-title {
+  margin: 0;
+  font-size: 1.05rem;
+  color: var(--ocean-dark);
+  font-weight: 700;
+}
+
+.species-sci-name {
+  font-size: 0.95rem;
+  color: var(--muted);
+  font-weight: normal;
+}
+
+.species-taxonomic-note {
+  margin: 0.35rem 0 0;
+  font-size: 0.82rem;
+  color: #6a1b9a;
+  background-color: #f3e5f5;
+  padding: 0.3rem 0.5rem;
+  border-radius: 4px;
+}
+
+.species-card-badge {
+  display: inline-block;
+  margin-bottom: 0.75rem;
+  padding: 0.2rem 0.5rem;
+  background-color: #e0f2f1;
+  color: #004d40;
+  font-size: 0.8rem;
+  font-weight: 600;
+  border-radius: 4px;
+  border: 1px solid #b2dfdb;
+}
+
+.species-card-figure {
+  margin: 0 0 0.85rem;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  overflow: hidden;
+  background-color: #f8fafc;
+}
+
+.species-card-figure img {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-height: 280px;
+  object-fit: cover;
+}
+
+.species-card-figure figcaption {
+  padding: 0.5rem 0.75rem;
+  font-size: 0.8rem;
+  color: var(--muted);
+  background-color: #f1f5f9;
+  border-top: 1px solid var(--line);
+}
+
+.species-card-figure .image-attribution {
+  margin: 0 0 0.25rem;
+  line-height: 1.35;
+}
+
+.species-card-figure figcaption a {
+  display: inline-block;
+  color: var(--ocean);
+  text-decoration: underline;
+  font-weight: 600;
+}
+
+.species-card-evidence {
+  border-top: 1px dashed var(--line);
+  padding-top: 0.75rem;
+}
+
+.species-card-evidence h5 {
+  margin: 0 0 0.5rem;
+  font-size: 0.88rem;
+  color: var(--ink);
+  font-weight: 700;
+}
+
+.species-evidence-fields {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.4rem;
+  font-size: 0.82rem;
+  margin: 0;
+}
+
+.species-evidence-fields > div {
+  display: grid;
+  grid-template-columns: 7.5rem 1fr;
+  gap: 0.5rem;
+}
+
+.species-evidence-fields dt {
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.species-evidence-fields dd {
+  margin: 0;
+  color: var(--ink);
+  word-break: break-word;
+}
+
+.species-reference-limitations {
+  margin-top: 1rem;
+  border-top: 1px dashed var(--line);
+  padding-top: 0.75rem;
+}
+
+.species-reference-limitations h4 {
+  margin: 0.75rem 0 0.5rem;
+  font-size: 0.95rem;
+  color: var(--ink);
+}
+
+.species-reference-limitations ul {
+  margin: 0.5rem 0 0;
+  padding-left: 1.25rem;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Profile QA Section                                                         */
+/* -------------------------------------------------------------------------- */
+
+.profile-qa-section {
+  border-top: 1px solid var(--line);
+  padding-top: 1rem;
+}
+
+.profile-qa-heading-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.profile-qa-disclaimer {
+  margin: 0.35rem 0 0.75rem;
+  padding: 0.4rem 0.65rem;
+  border-left: 3px solid var(--focus);
+  background-color: var(--sand);
+  color: var(--ink);
+  font-size: 0.82rem;
+  line-height: 1.45;
+  border-radius: 0 4px 4px 0;
+}
+
+.profile-qa-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.profile-qa-label {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.profile-qa-textarea {
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 0.55rem 0.75rem;
+  font-family: inherit;
+  font-size: 0.92rem;
+  color: var(--ink);
+  background-color: #ffffff;
+  resize: vertical;
+  min-height: 4.8rem;
+  box-sizing: border-box;
+}
+
+.profile-qa-textarea:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 1px;
+}
+
+.profile-qa-textarea:disabled {
+  background-color: #f1f5f9;
+  cursor: not-allowed;
+  opacity: 0.8;
+}
+
+.profile-qa-form-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-top: 0.25rem;
+}
+
+.profile-qa-counter {
+  font-size: 0.82rem;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.profile-qa-submit-button {
+  border: 1px solid var(--ocean);
+  border-radius: 6px;
+  padding: 0.45rem 1rem;
+  background-color: var(--ocean);
+  color: #ffffff;
+  font-size: 0.88rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.profile-qa-submit-button:hover:not(:disabled) {
+  background-color: var(--ocean-dark);
+}
+
+.profile-qa-submit-button:disabled {
+  border-color: #cbdbe1;
+  background-color: #cbdbe1;
+  color: #64748b;
+  cursor: not-allowed;
+}
+
+.profile-qa-output {
+  margin-top: 0.75rem;
+}
+
+.profile-qa-status {
+  margin: 0.5rem 0 0;
+  font-size: 0.88rem;
+  color: var(--ink);
+  line-height: 1.45;
+}
+
+.profile-qa-answer-container {
+  margin-top: 0.85rem;
+  border-top: 1px dashed var(--line);
+  padding-top: 0.75rem;
+}
+
+.profile-qa-answer-heading {
+  margin: 0 0 0.45rem;
+  font-size: 0.92rem;
+  color: var(--ocean-dark);
+  font-weight: 700;
+}
+
+.profile-qa-answer-text {
+  margin: 0 0 0.85rem;
+  padding: 0.75rem 0.95rem;
+  border-radius: 6px;
+  background-color: var(--foam);
+  border: 1px solid #b2dfdb;
+  color: var(--ink);
+  font-size: 0.92rem;
+  line-height: 1.6;
+}
+
+.profile-qa-citations-section {
+  margin-top: 0.75rem;
+}
+
+.profile-qa-citations-heading {
+  margin: 0 0 0.5rem;
+  font-size: 0.88rem;
+  color: var(--ink);
+  font-weight: 700;
+}
+
+.profile-qa-citations-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.profile-qa-citation-card {
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 0.65rem 0.85rem;
+  background-color: #fdfdfd;
+}
+
+.profile-qa-citation-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.45rem;
+  border-bottom: 1px solid #edf2f7;
+  padding-bottom: 0.35rem;
+}
+
+.profile-qa-citation-badge {
+  display: inline-block;
+  padding: 0.15rem 0.45rem;
+  background-color: var(--ocean);
+  color: #ffffff;
+  font-size: 0.75rem;
+  font-weight: 700;
+  border-radius: 4px;
+}
+
+.profile-qa-citation-title {
+  margin: 0;
+  font-size: 0.88rem;
+  color: var(--ink);
+  font-weight: 700;
+}
+
+.profile-qa-citation-fields {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.35rem;
+  margin: 0;
+  font-size: 0.82rem;
+}
+
+.profile-qa-citation-fields > div {
+  display: grid;
+  grid-template-columns: 6.5rem 1fr;
+  gap: 0.5rem;
+}
+
+.profile-qa-citation-fields dt {
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.profile-qa-citation-fields dd {
+  margin: 0;
+  color: var(--ink);
+  word-break: break-word;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Profile eDNA QA Section                                                    */
+/* -------------------------------------------------------------------------- */
+
+.profile-edna-qa-section {
+  border-top: 1px solid var(--line);
+  padding-top: 1rem;
+}
+
+.profile-edna-qa-heading-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.profile-edna-qa-disclaimer {
+  margin: 0.35rem 0 0.75rem;
+  padding: 0.4rem 0.65rem;
+  border-left: 3px solid var(--ocean);
+  background-color: var(--foam);
+  color: var(--ink);
+  font-size: 0.82rem;
+  line-height: 1.45;
+  border-radius: 0 4px 4px 0;
+}
+
+.profile-edna-qa-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.profile-edna-qa-label {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.profile-edna-qa-select {
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 0.45rem 0.65rem;
+  font-family: inherit;
+  font-size: 0.92rem;
+  color: var(--ink);
+  background-color: #ffffff;
+  box-sizing: border-box;
+}
+
+.profile-edna-qa-select:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 1px;
+}
+
+.profile-edna-qa-select:disabled {
+  background-color: #f1f5f9;
+  cursor: not-allowed;
+  opacity: 0.8;
+}
+
+.profile-edna-qa-textarea {
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 0.55rem 0.75rem;
+  font-family: inherit;
+  font-size: 0.92rem;
+  color: var(--ink);
+  background-color: #ffffff;
+  resize: vertical;
+  min-height: 4.8rem;
+  box-sizing: border-box;
+}
+
+.profile-edna-qa-textarea:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 1px;
+}
+
+.profile-edna-qa-textarea:disabled {
+  background-color: #f1f5f9;
+  cursor: not-allowed;
+  opacity: 0.8;
+}
+
+.profile-edna-qa-form-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-top: 0.25rem;
+}
+
+.profile-edna-qa-counter {
+  font-size: 0.82rem;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.profile-edna-qa-submit-button {
+  border: 1px solid var(--ocean);
+  border-radius: 6px;
+  padding: 0.45rem 1rem;
+  background-color: var(--ocean);
+  color: #ffffff;
+  font-size: 0.88rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.profile-edna-qa-submit-button:hover:not(:disabled) {
+  background-color: var(--ocean-dark);
+}
+
+.profile-edna-qa-submit-button:disabled {
+  border-color: #cbdbe1;
+  background-color: #cbdbe1;
+  color: #64748b;
+  cursor: not-allowed;
+}
+
+.profile-edna-qa-output {
+  margin-top: 0.75rem;
+}
+
+.profile-edna-qa-status {
+  margin: 0.5rem 0 0;
+  font-size: 0.88rem;
+  color: var(--ink);
+  line-height: 1.45;
+}
+
+.profile-edna-qa-answer-container {
+  margin-top: 0.85rem;
+  border-top: 1px dashed var(--line);
+  padding-top: 0.75rem;
+}
+
+.profile-edna-qa-answer-heading {
+  margin: 0 0 0.45rem;
+  font-size: 0.92rem;
+  color: var(--ocean-dark);
+  font-weight: 700;
+}
+
+.profile-edna-qa-answer-text {
+  margin: 0 0 0.85rem;
+  padding: 0.75rem 0.95rem;
+  border-radius: 6px;
+  background-color: var(--foam);
+  border: 1px solid #b2dfdb;
+  color: var(--ink);
+  font-size: 0.92rem;
+  line-height: 1.6;
+}
+
+.profile-edna-qa-citations-section {
+  margin-top: 0.75rem;
+}
+
+.profile-edna-qa-citations-heading {
+  margin: 0 0 0.5rem;
+  font-size: 0.88rem;
+  color: var(--ink);
+  font-weight: 700;
+}
+
+.profile-edna-qa-citations-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.profile-edna-qa-citation-card {
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 0.65rem 0.85rem;
+  background-color: #fdfdfd;
+}
+
+.profile-edna-qa-citation-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.45rem;
+  border-bottom: 1px solid #edf2f7;
+  padding-bottom: 0.35rem;
+}
+
+.profile-edna-qa-citation-badge {
+  display: inline-block;
+  padding: 0.15rem 0.45rem;
+  background-color: var(--ocean);
+  color: #ffffff;
+  font-size: 0.75rem;
+  font-weight: 700;
+  border-radius: 4px;
+}
+
+.profile-edna-qa-citation-title {
+  margin: 0;
+  font-size: 0.88rem;
+  color: var(--ink);
+  font-weight: 700;
+}
+
+.profile-edna-qa-citation-fields {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.35rem;
+  margin: 0;
+  font-size: 0.82rem;
+}
+
+.profile-edna-qa-citation-fields > div {
+  display: grid;
+  grid-template-columns: 6.5rem 1fr;
+  gap: 0.5rem;
+}
+
+.profile-edna-qa-citation-fields dt {
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.profile-edna-qa-citation-fields dd {
+  margin: 0;
+  color: var(--ink);
+  word-break: break-word;
+}
+
 [hidden] { display: none !important; }
 
 @media (max-width: 760px) {
@@ -530,8 +1204,15 @@ footer p { margin: 0; }
     grid-column: 1 / -1;
     grid-row: 1;
   }
+  .profile-qa-citation-fields > div { grid-template-columns: 1fr; gap: 0.1rem; }
+  .profile-qa-submit-button { width: 100%; }
+  .profile-qa-form-footer { flex-direction: column-reverse; align-items: stretch; gap: 0.35rem; }
+  .profile-edna-qa-citation-fields > div { grid-template-columns: 1fr; gap: 0.1rem; }
+  .profile-edna-qa-submit-button { width: 100%; }
+  .profile-edna-qa-form-footer { flex-direction: column-reverse; align-items: stretch; gap: 0.35rem; }
 }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; }
 }
+

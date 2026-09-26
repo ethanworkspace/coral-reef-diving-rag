@@ -1,0 +1,145 @@
+schema_version: "1.0.0"
+contract_type: "map_v1_rag_integration_contract"
+updated_at: "2026-09-25T21:45:00+08:00"
+status: "active"
+
+purpose:
+  name: "地圖 v1 資料資產納入 RAG 回答系統之使用與回答契約"
+  description: "嚴格定義地圖 v1 之潛點、海況、歷史生態證據、物種參考圖片及未核驗缺口資料在 RAG 回答時的准入路徑、事實性邊界、禁止用途、更新時效與伺服器端引用要求。"
+
+data_categories:
+  # 1. 經核准的靜態潛點介紹
+  curated_dive_site_profiles:
+    data_classification: "static_curated_profile"
+    source_files:
+      - "data/curated/dive_sites.csv"
+      - "metadata/dive_site_profiles_draft.json"
+      - "metadata/dive_site_profile_source_registry.csv"
+    admission_path: "rag_chunk_candidate"
+    eligibility_criteria:
+      registry_decision: "adopted"
+      may_publicly_summarize: "yes"
+      may_be_used_in_map_profile: "yes"
+    allowed_use:
+      - "回答經核驗潛點之官方基本背景、行政區歸屬與地理特色"
+      - "回答公開核准之潛點設施與公開活動背景（非現況保證）"
+    prohibited_use:
+      - "將代表點擴大解釋為下水入口、撤退點或安全活動範圍"
+      - "推論水深、能見度、流速或潛水難度等級"
+      - "提供任何合法性保證或下水許可判定"
+    citation_requirement: "server_side_bound_registry_source"
+    temporal_nature: "static_reviewed_snapshot"
+
+  # 2. CWA 海況預報與附近海域參考
+  realtime_marine_forecast_and_context:
+    data_classification: "dynamic_macro_numerical_model"
+    source_files:
+      - "data/raw/external/cwa/M-B0078-001"
+    admission_path: "realtime_tool_only"
+    static_embedding_status: "strictly_forbidden"
+    tool_requirements:
+      endpoint: "/api/dive-sites/{site_id}/nearby-marine-context"
+      mandatory_fields:
+        - "timestamp (issue_time / valid_time)"
+        - "model_location_name_and_code"
+        - "distance_m_and_km"
+        - "data_classification (nearby_numerical_model_context_not_in_situ_observation)"
+        - "mandatory_safety_disclaimers"
+    allowed_use:
+      - "透過即時工具提供最近外海數值模式計算點之波浪海流巨觀背景"
+    prohibited_use:
+      - "嵌入靜態 RAG chunk、語料庫或向量資料庫"
+      - "宣稱為潛點現場量測（in-situ observation）"
+      - "推論岸邊碎波帶、沿岸流或水下微地形"
+      - "輸出『適合下水』、『水況良好』或任何紅綠燈安全燈號"
+      - "使用超過 24 小時之過期快照（fail-closed 拒答）"
+    max_data_age_hours: 24
+
+  # 3. 歷史生態證據 (eDNA 與 Reef Check)
+  historical_ecological_evidence:
+    data_classification: "structured_historical_research_evidence"
+    source_files:
+      - "metadata/map_v1_site_biodiversity_evidence_candidates.csv"
+      - "metadata/map_v1_species_image_evidence_links.csv"
+    admission_path: "structured_tool_or_evidence_filter"
+    static_chunk_mixing_status: "strictly_forbidden"
+    subtypes:
+      edna:
+        license: "OGL 1.0 (Open Government License)"
+        evidence_nature: "historical_water_sample_dna_signal"
+        allowed_statement: "歷史採樣點水樣曾檢出該物種之游離 DNA 片段"
+        prohibited_statement: "該物種現存於潛點、潛水肉眼可見或目前可目擊"
+      reef_check:
+        license: "CC BY-NC 4.0"
+        evidence_nature: "historical_visual_transect_survey"
+        server_deployment_gate: "REEFCHECK_LOCAL_NONCOMMERCIAL_RESEARCH_MODE=enabled"
+        client_override_forbidden: true
+        allowed_statement: "過往志工水下穿越線歷史目視記錄"
+        prohibited_statement: "當前生態現況、目前生物密度或商業導覽宣傳"
+    coral_rule:
+      species_level_fabrication: "strictly_forbidden"
+      allowed_coral_description: "僅得陳述歷史調查之硬珊瑚整體覆蓋度區間或環境地貌描述"
+
+  # 4. 物種外觀參考圖片
+  species_reference_media:
+    data_classification: "illustrative_media_reference"
+    source_files:
+      - "metadata/species_image_manifest.csv"
+      - "data/curated-media/species-reference/*.jpg"
+    admission_path: "not_admitted_to_rag"
+    rag_knowledge_status: "strictly_forbidden"
+    prohibited_use:
+      - "將圖片內容文字化（OCR/Caption）後作為 RAG 事實性 chunk"
+      - "作為潛點生物現場存在之佐證"
+    allowed_scope: "僅供前端地圖抽屜展示、作者顯名與 CC 授權回查"
+
+  # 5. 未核驗區域與無資料潛點
+  unverified_and_gap_regions:
+    data_classification: "explicit_data_gap"
+    scope:
+      - "北部海域（東北角、龍洞、潮境、鼻頭角）"
+      - "西南部海域（墾丁、恆春半島、小琉球、屏東）"
+      - "東部海域（蘭嶼、花蓮石梯坪）"
+      - "澎湖非核驗區域與非受控名單"
+      - "金門與馬祖要塞管制水域"
+    prohibited_use:
+      - "利用 LLM 常識自行補齊座標、補建潛點或編造推薦下水點"
+      - "為南寮漁港、險礁嶼或缺口區域虛構魚類與珊瑚物種清單"
+    enforcement: "explicit_refusal_or_gap_disclosure"
+    disclosure_statement: "目前該區域尚無通過來源權利、座標 CRS、開放授權與現地證據核驗之正式潛點資料。"
+
+safety_routing:
+  policy: "safety_first_intercept_before_rag"
+  categories:
+    realtime_marine_safety:
+      trigger_patterns:
+        - "現在可以下水嗎"
+        - "浪況適合潛水嗎"
+        - "會不會危險"
+        - "今天浪高多少"
+        - "安全嗎"
+        - "有流嗎"
+      action: "refuse_safety_judgement_and_redirect_cwa"
+    medical_and_emergency:
+      trigger_patterns:
+        - "減壓病"
+        - "頭痛急救"
+        - "被海星刺傷"
+        - "溺水處置"
+        - "氣胸"
+        - "緊急救援"
+      action: "redirect_professional_medical_and_emergency_services"
+    site_location_generalization:
+      trigger_patterns:
+        - "下水點在哪"
+        - "停車走哪裡下海"
+        - "最好的入水點"
+        - "沿哪條岸線走"
+      action: "disclaim_representative_point_only"
+
+citation_binding:
+  enforcement: "server_side_deterministic_binding"
+  rules:
+    - "模型不得在生成文字中內嵌假造 URL 或自行編造來源名稱"
+    - "所有潛點介紹引用必須與 dive_site_profile_source_registry.csv 完全一致"
+    - "歷史生態證據引用必須明確包含採樣/調查年份、機構名稱與授權標示"

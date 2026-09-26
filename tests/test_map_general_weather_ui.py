@@ -125,6 +125,7 @@ console.log(JSON.stringify({timezone: request.timeZone, raceProtected: true}));
     def test_no_unapproved_forecast_source_or_marine_feature_is_added(self) -> None:
         combined = self.html + self.javascript + self.query_javascript
         self.assertIn("general-weather-forecast", combined)
+        self.assertIn("nearby-marine-context", combined)
         self.assertNotIn("marine-forecast", combined)
         self.assertNotIn("nearby-edna", self.query_javascript)
         self.assertNotIn("nearby-reef-check", self.query_javascript)

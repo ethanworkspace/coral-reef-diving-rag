@@ -8,10 +8,12 @@ import sqlite3
 from datetime import datetime
 from pathlib import Path
 
+from typing import Any, Callable
+
 from fastapi import Depends, FastAPI, HTTPException, Query
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 from .iai import IAIClient, IAIError
 from .general_weather import GeneralWeatherError, find_general_weather_forecast
@@ -20,6 +22,7 @@ from .knowledge import load_conservation_cards, render_conservation_cards
 from .dive_site_profiles import ProfileDataError, load_profile_catalog, profile_api_payload
 from .dive_site_media import MediaManifestError, load_media_catalog, media_api_payload
 from .marine_forecast import ForecastError, find_marine_forecast, utc_now
+from .nearby_marine_context import NearbyMarineContextError, find_nearby_marine_context
 from .nearby_edna import DEFAULT_LIMIT, MAX_LIMIT, MAX_OFFSET, MAX_RADIUS_M, find_nearby_edna_evidence
 from .nearby_reef_check import (
     ReefCheckLicenseRestrictedError,
@@ -31,14 +34,38 @@ from .settings import Settings
 from .store import FTSIndexNotReadyError, FTSUnavailableError, KnowledgeStore
 from .research_assistant import run_research_assistant
 from .research_chat import remaining_model_calls, run_research_chat
+from .species_reference import SpeciesReferenceError, find_species_reference_images
 from .rag_v2_answer import answer_rag_v2_question
+from .map_profile_answer import (
+    ProfileAnswerResult,
+    ProfileCitation,
+    answer_profile_question,
+)
+from .map_profile_evidence import (
+    DEFAULT_CURATED_SITES_PATH,
+    ProfileEvidenceError,
+    _load_curated_site_ids,
+)
+from .map_profile_edna_answer import (
+    ProfileEdnaAnswerResult,
+    ProfileEdnaCitation,
+    answer_profile_edna_question,
+)
+from .map_profile_edna_evidence import ProfileEdnaEvidenceError
 
 
 ROOT = Path(__file__).resolve().parents[2]
 PACKAGE_ROOT = Path(__file__).resolve().parent
 STATIC_ROOT = PACKAGE_ROOT / "static"
+CURATED_SPECIES_MEDIA_DIR = ROOT / "data" / "curated-media" / "species-reference"
 TEMPLATE_ROOT = PACKAGE_ROOT / "templates"
 app = FastAPI(title="珊瑚礁浮潛與水肺潛水研究支援", docs_url=None, redoc_url=None)
+if CURATED_SPECIES_MEDIA_DIR.exists():
+    app.mount(
+        "/static/curated-media/species-reference",
+        StaticFiles(directory=CURATED_SPECIES_MEDIA_DIR),
+        name="species-reference",
+    )
 app.mount("/static", StaticFiles(directory=STATIC_ROOT), name="static")
 
 
@@ -46,6 +73,43 @@ class RagV2AskRequest(BaseModel):
     question: str = Field(min_length=2, max_length=1000)
 
     model_config = {"extra": "forbid"}
+
+
+class AskProfileRequest(BaseModel):
+    question: str = Field(min_length=2, max_length=500)
+
+    model_config = {"extra": "forbid"}
+
+    @field_validator("question")
+    @classmethod
+    def validate_question(cls, v: str) -> str:
+        stripped = v.strip()
+        if len(stripped) < 2:
+            raise ValueError("問題內容過短或全為空白字元，請輸入至少 2 個有效字元。")
+        return stripped
+
+
+def get_profile_llm_client() -> Callable[[str, str], str] | None:
+    return None
+
+
+class AskEdnaRequest(BaseModel):
+    question: str = Field(min_length=2, max_length=500)
+    radius_m: int = Field(ge=1, le=5000)
+
+    model_config = {"extra": "forbid"}
+
+    @field_validator("question")
+    @classmethod
+    def validate_question(cls, v: str) -> str:
+        stripped = v.strip()
+        if len(stripped) < 2:
+            raise ValueError("問題內容過短或全為空白字元，請輸入至少 2 個有效字元。")
+        return stripped
+
+
+def get_edna_llm_client() -> Callable[[str, str], str] | None:
+    return None
 
 
 class QueryRequest(BaseModel):
@@ -196,6 +260,211 @@ def get_dive_site_profile(site_id: str) -> JSONResponse:
     return JSONResponse(payload, headers={"Cache-Control": "no-store"})
 
 
+@app.post("/api/dive-sites/{site_id}/ask-profile")
+def ask_profile(
+    site_id: str,
+    request: AskProfileRequest,
+    llm_client: Callable[[str, str], str] | None = Depends(get_profile_llm_client),
+) -> JSONResponse:
+    """Execute controlled profile-specific generative question answering for a curated dive site.
+
+    Response adheres strictly to a 4-field whitelist:
+    status, answer_zh_hant, citations, safety_route.
+    All responses set Cache-Control: no-store.
+    """
+    csv_path = ROOT / "data" / "curated" / "dive_sites.csv"
+    if not csv_path.exists():
+        return JSONResponse(
+            {
+                "status": "profile_source_unavailable",
+                "answer_zh_hant": "潛點介紹資料來源或索引校驗失敗，暫時無法提供問答服務。",
+                "citations": [],
+                "safety_route": None,
+            },
+            status_code=503,
+            headers={"Cache-Control": "no-store"},
+        )
+
+    try:
+        curated_ids = _load_curated_site_ids(csv_path)
+    except ProfileEvidenceError:
+        return JSONResponse(
+            {
+                "status": "profile_source_unavailable",
+                "answer_zh_hant": "潛點介紹資料來源或索引校驗失敗，暫時無法提供問答服務。",
+                "citations": [],
+                "safety_route": None,
+            },
+            status_code=503,
+            headers={"Cache-Control": "no-store"},
+        )
+
+    if site_id not in curated_ids:
+        return JSONResponse(
+            {
+                "status": "site_not_found",
+                "answer_zh_hant": "指定的潛點代碼不存在或未經核驗。",
+                "citations": [],
+                "safety_route": None,
+            },
+            status_code=404,
+            headers={"Cache-Control": "no-store"},
+        )
+
+    clean_q = request.question.strip()
+    try:
+        result = answer_profile_question(
+            question=clean_q,
+            site_id=site_id,
+            llm_client=llm_client,
+        )
+    except (ProfileEvidenceError, sqlite3.DatabaseError):
+        return JSONResponse(
+            {
+                "status": "profile_source_unavailable",
+                "answer_zh_hant": "潛點介紹資料來源或索引校驗失敗，暫時無法提供問答服務。",
+                "citations": [],
+                "safety_route": None,
+            },
+            status_code=503,
+            headers={"Cache-Control": "no-store"},
+        )
+    except Exception:
+        return JSONResponse(
+            {
+                "status": "internal_error",
+                "answer_zh_hant": "伺服器處理問答時發生未預期異常，請稍後再試。",
+                "citations": [],
+                "safety_route": None,
+            },
+            status_code=500,
+            headers={"Cache-Control": "no-store"},
+        )
+
+    citations_payload = (
+        [c.to_dict() if hasattr(c, "to_dict") else c for c in result.citations]
+        if result.status == "answerable"
+        else []
+    )
+    safety_route_payload = (
+        result.error_code
+        if result.status == "safety_intercepted"
+        else None
+    )
+
+    payload = {
+        "status": result.status,
+        "answer_zh_hant": result.answer_zh_hant,
+        "citations": citations_payload,
+        "safety_route": safety_route_payload,
+    }
+    return JSONResponse(payload, headers={"Cache-Control": "no-store"})
+
+
+@app.post("/api/dive-sites/{site_id}/ask-edna")
+def ask_edna(
+    site_id: str,
+    request: AskEdnaRequest,
+    llm_client: Callable[[str, str], str] | None = Depends(get_edna_llm_client),
+) -> JSONResponse:
+    """Execute controlled eDNA historical evidence generative question answering for a curated dive site.
+
+    Response adheres strictly to a 4-field whitelist:
+    status, answer_zh_hant, citations, safety_route.
+    All responses set Cache-Control: no-store.
+    """
+    csv_path = ROOT / "data" / "curated" / "dive_sites.csv"
+    if not csv_path.exists():
+        return JSONResponse(
+            {
+                "status": "edna_source_unavailable",
+                "answer_zh_hant": "潛點資料來源校驗失敗，暫時無法提供問答服務。",
+                "citations": [],
+                "safety_route": None,
+            },
+            status_code=503,
+            headers={"Cache-Control": "no-store"},
+        )
+
+    try:
+        curated_ids = _load_curated_site_ids(csv_path)
+    except Exception:
+        return JSONResponse(
+            {
+                "status": "edna_source_unavailable",
+                "answer_zh_hant": "潛點資料來源校驗失敗，暫時無法提供問答服務。",
+                "citations": [],
+                "safety_route": None,
+            },
+            status_code=503,
+            headers={"Cache-Control": "no-store"},
+        )
+
+    if site_id not in curated_ids:
+        return JSONResponse(
+            {
+                "status": "site_not_found",
+                "answer_zh_hant": "指定的潛點代碼不存在或未經核驗。",
+                "citations": [],
+                "safety_route": None,
+            },
+            status_code=404,
+            headers={"Cache-Control": "no-store"},
+        )
+
+    clean_q = request.question.strip()
+    clean_r = request.radius_m
+    try:
+        result = answer_profile_edna_question(
+            clean_q,
+            site_id=site_id,
+            radius_m=clean_r,
+            limit=10,
+            llm_callable_override=llm_client,
+        )
+    except (ProfileEdnaEvidenceError, sqlite3.DatabaseError):
+        return JSONResponse(
+            {
+                "status": "edna_source_unavailable",
+                "answer_zh_hant": "結構化 eDNA 資料庫不可用或來源驗證失敗，暫時無法提供問答服務。",
+                "citations": [],
+                "safety_route": None,
+            },
+            status_code=503,
+            headers={"Cache-Control": "no-store"},
+        )
+    except Exception:
+        return JSONResponse(
+            {
+                "status": "internal_error",
+                "answer_zh_hant": "伺服器處理問答時發生未預期異常，請稍後再試。",
+                "citations": [],
+                "safety_route": None,
+            },
+            status_code=500,
+            headers={"Cache-Control": "no-store"},
+        )
+
+    citations_payload = (
+        [c.to_dict() if hasattr(c, "to_dict") else c for c in result.citations]
+        if result.status == "answerable"
+        else []
+    )
+    safety_route_payload = (
+        result.error_code
+        if result.status in ("safety_intercepted", "scope_guidance")
+        else None
+    )
+
+    payload = {
+        "status": result.status,
+        "answer_zh_hant": result.answer_zh_hant,
+        "citations": citations_payload,
+        "safety_route": safety_route_payload,
+    }
+    return JSONResponse(payload, headers={"Cache-Control": "no-store"})
+
+
 @app.get("/api/dive-sites/{site_id}/nearby-edna")
 def nearby_edna(
     site_id: str,
@@ -267,6 +536,41 @@ def marine_forecast(
         )
         return JSONResponse(payload, headers={"Cache-Control": "no-store"})
     except ForecastError as error:
+        return JSONResponse(error.payload, status_code=error.status_code, headers={"Cache-Control": "no-store"})
+
+
+@app.get("/api/dive-sites/{site_id}/nearby-marine-context")
+def nearby_marine_context(
+    site_id: str,
+    start_at: str | None = Query(None, min_length=20, max_length=40, description="Timezone-qualified ISO 8601, inclusive"),
+    end_at: str | None = Query(None, min_length=20, max_length=40, description="Timezone-qualified ISO 8601, exclusive"),
+    now: datetime = Depends(utc_now),
+) -> JSONResponse:
+    """Macro numerical model wave/current context from nearest CWA calculation point; never in-situ observation."""
+    try:
+        try:
+            settings_age = os.getenv("NEARBY_MARINE_MAX_DATA_AGE_HOURS")
+            max_age = int(settings_age) if settings_age else 24
+        except (ValueError, TypeError):
+            max_age = 24
+        payload = find_nearby_marine_context(
+            _dive_sites_database(), ROOT / "data" / "raw" / "external" / "cwa",
+            site_id, start_at, end_at, now=now, max_age_hours=max_age,
+        )
+        return JSONResponse(payload, headers={"Cache-Control": "no-store"})
+    except NearbyMarineContextError as error:
+        return JSONResponse(error.payload, status_code=error.status_code, headers={"Cache-Control": "no-store"})
+
+
+@app.get("/api/dive-sites/{site_id}/species-reference-images")
+def species_reference_images(
+    site_id: str,
+) -> JSONResponse:
+    """Public-safe read-only endpoint for species reference images and verified evidence linkage."""
+    try:
+        payload = find_species_reference_images(ROOT, site_id)
+        return JSONResponse(payload, headers={"Cache-Control": "no-store"})
+    except SpeciesReferenceError as error:
         return JSONResponse(error.payload, status_code=error.status_code, headers={"Cache-Control": "no-store"})
 
 

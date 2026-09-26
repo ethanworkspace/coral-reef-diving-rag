@@ -98,6 +98,40 @@
     weatherQueryWindow: document.getElementById("weather-query-window"),
     weatherSourceDetails: document.getElementById("weather-source-details"),
     weatherResults: document.getElementById("weather-results"),
+    nearbyMarineSection: document.getElementById("profile-nearby-marine"),
+    nearbyMarineRefresh: document.getElementById("nearby-marine-refresh"),
+    nearbyMarineStatus: document.getElementById("nearby-marine-status"),
+    nearbyMarineContent: document.getElementById("nearby-marine-content"),
+    nearbyMarineMetaFields: document.getElementById("nearby-marine-meta-fields"),
+    nearbyMarineItems: document.getElementById("nearby-marine-items"),
+    nearbyMarineDisclaimers: document.getElementById("nearby-marine-disclaimers"),
+    speciesReferenceSection: document.getElementById("profile-species-reference"),
+    speciesReferenceRefresh: document.getElementById("species-reference-refresh"),
+    speciesReferenceStatus: document.getElementById("species-reference-status"),
+    speciesReferenceContent: document.getElementById("species-reference-content"),
+    speciesReferenceList: document.getElementById("species-reference-list"),
+    speciesReferenceDisclaimers: document.getElementById("species-reference-disclaimers"),
+    profileQaSection: document.getElementById("profile-qa"),
+    profileQaForm: document.getElementById("profile-qa-form"),
+    profileQaInput: document.getElementById("profile-qa-input"),
+    profileQaCounter: document.getElementById("profile-qa-counter"),
+    profileQaSubmit: document.getElementById("profile-qa-submit"),
+    profileQaStatus: document.getElementById("profile-qa-status"),
+    profileQaAnswerContainer: document.getElementById("profile-qa-answer-container"),
+    profileQaAnswerText: document.getElementById("profile-qa-answer-text"),
+    profileQaCitationsSection: document.getElementById("profile-qa-citations-section"),
+    profileQaCitationsList: document.getElementById("profile-qa-citations-list"),
+    profileEdnaQaSection: document.getElementById("profile-edna-qa"),
+    profileEdnaQaForm: document.getElementById("profile-edna-qa-form"),
+    profileEdnaQaRadius: document.getElementById("profile-edna-qa-radius"),
+    profileEdnaQaInput: document.getElementById("profile-edna-qa-input"),
+    profileEdnaQaCounter: document.getElementById("profile-edna-qa-counter"),
+    profileEdnaQaSubmit: document.getElementById("profile-edna-qa-submit"),
+    profileEdnaQaStatus: document.getElementById("profile-edna-qa-status"),
+    profileEdnaQaAnswerContainer: document.getElementById("profile-edna-qa-answer-container"),
+    profileEdnaQaAnswerText: document.getElementById("profile-edna-qa-answer-text"),
+    profileEdnaQaCitationsSection: document.getElementById("profile-edna-qa-citations-section"),
+    profileEdnaQaCitationsList: document.getElementById("profile-edna-qa-citations-list"),
   };
 
   let map = null;
@@ -108,6 +142,7 @@
   let reefCheckBusy = false;
   let weatherBusy = false;
   let profileBusy = false;
+  let nearbyMarineBusy = false;
   let currentEdnaOffset = 0;
   let currentEdnaNextOffset = null;
   let currentReefCheckOffset = 0;
@@ -116,6 +151,156 @@
   const reefCheckRequests = reefCheckTools ? new reefCheckTools.RequestCoordinator() : null;
   const weatherRequests = weatherTools ? new weatherTools.RequestCoordinator() : null;
   const profileRequests = profileTools ? new profileTools.RequestCoordinator() : null;
+
+  class NearbyMarineRequestCoordinator {
+    constructor() {
+      this.sequence = 0;
+      this.controller = null;
+    }
+
+    start(siteId) {
+      this.cancel();
+      this.sequence += 1;
+      this.controller = new AbortController();
+      return { sequence: this.sequence, siteId, signal: this.controller.signal };
+    }
+
+    cancel() {
+      if (this.controller) {
+        this.controller.abort();
+        this.controller = null;
+      }
+    }
+
+    isCurrent(token, currentSiteId) {
+      return Boolean(
+        token &&
+        token.sequence === this.sequence &&
+        token.siteId === currentSiteId
+      );
+    }
+
+    finish(token) {
+      if (token && token.sequence === this.sequence) {
+        this.controller = null;
+      }
+    }
+  }
+
+  class SpeciesReferenceRequestCoordinator {
+    constructor() {
+      this.sequence = 0;
+      this.controller = null;
+    }
+
+    start(siteId) {
+      this.cancel();
+      this.sequence += 1;
+      this.controller = new AbortController();
+      return { sequence: this.sequence, siteId, signal: this.controller.signal };
+    }
+
+    cancel() {
+      if (this.controller) {
+        this.controller.abort();
+        this.controller = null;
+      }
+    }
+
+    isCurrent(token, currentSiteId) {
+      return Boolean(
+        token &&
+        token.sequence === this.sequence &&
+        token.siteId === currentSiteId
+      );
+    }
+
+    finish(token) {
+      if (token && token.sequence === this.sequence) {
+        this.controller = null;
+      }
+    }
+  }
+
+  class ProfileQaRequestCoordinator {
+    constructor() {
+      this.sequence = 0;
+      this.controller = null;
+    }
+
+    start(siteId) {
+      this.cancel();
+      this.sequence += 1;
+      this.controller = new AbortController();
+      return { sequence: this.sequence, siteId, signal: this.controller.signal };
+    }
+
+    cancel() {
+      if (this.controller) {
+        this.controller.abort();
+        this.controller = null;
+      }
+    }
+
+    isCurrent(token, currentSiteId) {
+      return Boolean(
+        token &&
+        token.sequence === this.sequence &&
+        token.siteId === currentSiteId &&
+        !token.signal?.aborted
+      );
+    }
+
+    finish(token) {
+      if (token && token.sequence === this.sequence) {
+        this.controller = null;
+      }
+    }
+  }
+
+  class ProfileEdnaQaRequestCoordinator {
+    constructor() {
+      this.sequence = 0;
+      this.controller = null;
+    }
+
+    start(siteId) {
+      this.cancel();
+      this.sequence += 1;
+      this.controller = new AbortController();
+      return { sequence: this.sequence, siteId, signal: this.controller.signal };
+    }
+
+    cancel() {
+      if (this.controller) {
+        this.controller.abort();
+        this.controller = null;
+      }
+    }
+
+    isCurrent(token, currentSiteId) {
+      return Boolean(
+        token &&
+        token.sequence === this.sequence &&
+        token.siteId === currentSiteId &&
+        !token.signal?.aborted
+      );
+    }
+
+    finish(token) {
+      if (token && token.sequence === this.sequence) {
+        this.controller = null;
+      }
+    }
+  }
+
+  const nearbyMarineRequests = new NearbyMarineRequestCoordinator();
+  const speciesReferenceRequests = new SpeciesReferenceRequestCoordinator();
+  const profileQaRequests = new ProfileQaRequestCoordinator();
+  const profileEdnaQaRequests = new ProfileEdnaQaRequestCoordinator();
+  let speciesReferenceBusy = false;
+  let profileQaBusy = false;
+  let profileEdnaQaBusy = false;
   const markerById = new Map();
   const buttonById = new Map();
 
@@ -909,6 +1094,10 @@
     elements.profileContent.hidden = collapsed;
     elements.profileToggle.setAttribute("aria-expanded", String(!collapsed));
     elements.profileToggle.textContent = collapsed ? "展開資訊" : "收合資訊";
+    if (collapsed) {
+      profileQaRequests.cancel();
+      profileEdnaQaRequests.cancel();
+    }
   }
 
   function clearProfileSources(list) {
@@ -916,6 +1105,8 @@
   }
 
   function clearProfileDisplay() {
+    clearProfileQaDisplay();
+    clearProfileEdnaQaDisplay();
     elements.profileDetails.hidden = true;
     elements.profileMediaState.replaceChildren();
     const mediaWaiting = document.createElement("p");
@@ -1158,6 +1349,1022 @@
     }
   }
 
+  const NEARBY_MARINE_ENDPOINT = "/api/dive-sites";
+
+  function clearNearbyMarineDisplay() {
+    if (elements.nearbyMarineContent) {
+      elements.nearbyMarineContent.hidden = true;
+    }
+    if (elements.nearbyMarineMetaFields) {
+      elements.nearbyMarineMetaFields.replaceChildren();
+    }
+    if (elements.nearbyMarineItems) {
+      elements.nearbyMarineItems.replaceChildren();
+    }
+    if (elements.nearbyMarineDisclaimers) {
+      elements.nearbyMarineDisclaimers.replaceChildren();
+    }
+  }
+
+  function resetNearbyMarine(message) {
+    nearbyMarineRequests.cancel();
+    clearNearbyMarineDisplay();
+    if (elements.nearbyMarineStatus) {
+      elements.nearbyMarineStatus.textContent =
+        message || "請點選地圖標記或潛點清單以讀取附近海域模式資料。";
+    }
+  }
+
+  function setNearbyMarineBusy(busy) {
+    nearbyMarineBusy = busy;
+    if (elements.nearbyMarineSection) {
+      elements.nearbyMarineSection.setAttribute("aria-busy", busy ? "true" : "false");
+    }
+    if (elements.nearbyMarineRefresh) {
+      elements.nearbyMarineRefresh.disabled = busy;
+    }
+  }
+
+  function formatCoord(lat, lon) {
+    if (typeof lat !== "number" || typeof lon !== "number") return RAW_VALUE_MISSING;
+    return `${lat.toFixed(6)}, ${lon.toFixed(6)}`;
+  }
+
+  function renderNearbyMarineMeta(payload) {
+    const model = payload.nearby_model_location || {};
+    const site = payload.dive_site || {};
+    const source = payload.source || {};
+    const dl = elements.nearbyMarineMetaFields;
+    dl.replaceChildren();
+
+    appendEvidenceField(
+      dl,
+      "模式位置名稱／代碼",
+      model.location_name && model.location_code
+        ? `${model.location_name}（${model.location_code}）`
+        : safeText(model.location_name || model.location_code),
+    );
+    appendEvidenceField(
+      dl,
+      "模式點座標",
+      formatCoord(model.latitude, model.longitude),
+    );
+    appendEvidenceField(
+      dl,
+      "潛點代表點座標",
+      formatCoord(site.latitude, site.longitude),
+    );
+    appendEvidenceField(
+      dl,
+      "距潛點直線距離",
+      model.distance_m !== undefined && model.distance_km !== undefined
+        ? `${Number(model.distance_m).toLocaleString("zh-TW", { minimumFractionDigits: 1, maximumFractionDigits: 2 })} 公尺（${model.distance_km} 公里）`
+        : RAW_VALUE_MISSING,
+    );
+    appendEvidenceField(
+      dl,
+      "空間性質說明",
+      safeText(model.location_nature, "氣象署近岸數值模式預報代表外海計算點，非潛點現場量測"),
+    );
+    appendEvidenceField(
+      dl,
+      "資料發布時間",
+      safeText(source.issued_at),
+    );
+    appendEvidenceField(
+      dl,
+      "預報有效時間",
+      source.valid_from && source.valid_to
+        ? `${source.valid_from} 至 ${source.valid_to}`
+        : RAW_VALUE_MISSING,
+    );
+  }
+
+  function renderNearbyMarineItem(item, index) {
+    const li = document.createElement("li");
+    const article = document.createElement("article");
+    article.className = "evidence-card";
+    const h4 = document.createElement("h4");
+    h4.textContent = `預報時點 ${index}：${safeText(item.valid_at)}`;
+    const dl = document.createElement("dl");
+    dl.className = "evidence-card-fields";
+
+    const waveHeight = item.significant_wave_height_m;
+    appendEvidenceField(
+      dl,
+      "浪高",
+      waveHeight !== null && waveHeight !== undefined
+        ? `${waveHeight} 公尺 (m)`
+        : RAW_VALUE_MISSING,
+    );
+    appendEvidenceField(
+      dl,
+      "波向",
+      safeText(item.wave_direction),
+    );
+    const wavePeriod = item.wave_period_s;
+    appendEvidenceField(
+      dl,
+      "週期",
+      wavePeriod !== null && wavePeriod !== undefined
+        ? `${wavePeriod} 秒 (s)`
+        : RAW_VALUE_MISSING,
+    );
+    appendEvidenceField(
+      dl,
+      "流向",
+      safeText(item.ocean_current_direction),
+    );
+    const speed = item.ocean_current_speed_knot;
+    const rawSpeed = item.raw_current_speed;
+    let speedText = RAW_VALUE_MISSING;
+    if (speed !== null && speed !== undefined) {
+      speedText = `${speed} 節 (knot)`;
+    } else if (rawSpeed) {
+      speedText = `${rawSpeed} 節 (knot)`;
+    }
+    appendEvidenceField(
+      dl,
+      "流速",
+      speedText,
+    );
+
+    article.append(h4, dl);
+    li.append(article);
+    return li;
+  }
+
+  function renderNearbyMarineDisclaimers(disclaimers) {
+    const ul = elements.nearbyMarineDisclaimers;
+    ul.replaceChildren();
+    const list = Array.isArray(disclaimers) && disclaimers.length > 0
+      ? disclaimers
+      : [
+          "此資料為交通部中央氣象署數值模式外海代表計算點之預報結果，絕非潛點現場量測數據。",
+          "模式代表位置與潛點實體存在客觀空間距離，無法反映近岸水文微地形、碎波帶與沿岸暗流。",
+          "本資料僅供宏觀海域環境背景參考，嚴禁單獨用於判斷合法性、安全性或是否適合下水。",
+          "從事浮潛或水肺潛水活動前，必須確認最新官方警特報、現場實際海況，並由合格專業人員實地評估。",
+        ];
+    list.forEach((text) => {
+      const li = document.createElement("li");
+      li.textContent = text;
+      ul.append(li);
+    });
+  }
+
+  async function loadNearbyMarineContext(site) {
+    const targetSite = site || selectedSite;
+    if (!targetSite || !targetSite.id) {
+      resetNearbyMarine("請先選擇潛點。");
+      return;
+    }
+    const siteId = safeText(targetSite.id, "");
+    const token = nearbyMarineRequests.start(siteId);
+    clearNearbyMarineDisplay();
+    setNearbyMarineBusy(true);
+    elements.nearbyMarineStatus.textContent = `正在讀取 ${safeText(targetSite.name)} 的附近海域模式參考…`;
+
+    try {
+      const url = `${NEARBY_MARINE_ENDPOINT}/${encodeURIComponent(siteId)}/nearby-marine-context`;
+      const response = await fetch(url, {
+        headers: { Accept: "application/json" },
+        credentials: "same-origin",
+        cache: "no-store",
+        signal: token.signal,
+      });
+
+      if (!nearbyMarineRequests.isCurrent(token, selectedSite ? safeText(selectedSite.id, "") : null)) return;
+
+      if (response.status === 404) {
+        clearNearbyMarineDisplay();
+        elements.nearbyMarineStatus.textContent = "找不到目前選取的潛點（404）；未顯示任何舊預報。";
+        return;
+      }
+      if (response.status === 422) {
+        clearNearbyMarineDisplay();
+        elements.nearbyMarineStatus.textContent = "預報時間範圍無效（422）；未顯示任何舊預報。";
+        return;
+      }
+      if (response.status === 503) {
+        clearNearbyMarineDisplay();
+        let reasonMsg = "附近海域模式資料目前無法提供（503）；未顯示任何舊資料。";
+        try {
+          const errPayload = await response.json();
+          if (errPayload && errPayload.reason === "source_expired") {
+            reasonMsg = "氣象署模式預報資料已過期（發布超過 24 小時）；為確保安全，未顯示過期舊預報。";
+          } else if (errPayload && errPayload.reason === "source_checksum_mismatch") {
+            reasonMsg = "模式快照完整性驗證失敗；未顯示不可靠資料。";
+          } else if (errPayload && (errPayload.reason === "no_source_snapshot_found" || errPayload.reason === "source_directory_unavailable")) {
+            reasonMsg = "目前無可用的氣象署模式快照資料；未顯示任何預報值。";
+          }
+        } catch (_jsonErr) {}
+        elements.nearbyMarineStatus.textContent = reasonMsg;
+        return;
+      }
+      if (!response.ok) {
+        clearNearbyMarineDisplay();
+        elements.nearbyMarineStatus.textContent = `附近海域模式 API 查詢失敗（HTTP ${response.status}）；未顯示任何舊預報值。`;
+        return;
+      }
+
+      try {
+        const payload = await response.json();
+        if (!nearbyMarineRequests.isCurrent(token, selectedSite ? safeText(selectedSite.id, "") : null)) return;
+
+        if (!payload || payload.status !== "ok" || !Array.isArray(payload.items)) {
+          clearNearbyMarineDisplay();
+          elements.nearbyMarineStatus.textContent = "模式資料回應格式不符；未顯示任何預報值。";
+          return;
+        }
+
+        renderNearbyMarineMeta(payload);
+        elements.nearbyMarineItems.replaceChildren(
+          ...payload.items.map((item, idx) => renderNearbyMarineItem(item, idx + 1)),
+        );
+        renderNearbyMarineDisclaimers(payload.disclaimers);
+        elements.nearbyMarineContent.hidden = false;
+        elements.nearbyMarineStatus.textContent = `已載入最近模式計算點預報（共 ${payload.items.length} 筆時點）。此資料非潛點現場量測，僅供海域背景參考。`;
+      } catch (_jsonErr) {
+        if (!nearbyMarineRequests.isCurrent(token, selectedSite ? safeText(selectedSite.id, "") : null)) return;
+        clearNearbyMarineDisplay();
+        elements.nearbyMarineStatus.textContent = "附近海域模式資料解析失敗；未顯示任何預報值。";
+      }
+    } catch (error) {
+      if (error && error.name === "AbortError") return;
+      if (!nearbyMarineRequests.isCurrent(token, selectedSite ? safeText(selectedSite.id, "") : null)) return;
+      clearNearbyMarineDisplay();
+      elements.nearbyMarineStatus.textContent = "無法連線至附近海域模式 API；未顯示任何舊資料。";
+    } finally {
+      if (nearbyMarineRequests.isCurrent(token, selectedSite ? safeText(selectedSite.id, "") : null)) {
+        nearbyMarineRequests.finish(token);
+        setNearbyMarineBusy(false);
+      }
+    }
+  }
+
+  function clearSpeciesReferenceDisplay() {
+    if (elements.speciesReferenceContent) {
+      elements.speciesReferenceContent.hidden = true;
+    }
+    if (elements.speciesReferenceList) {
+      elements.speciesReferenceList.replaceChildren();
+    }
+    if (elements.speciesReferenceDisclaimers) {
+      elements.speciesReferenceDisclaimers.replaceChildren();
+    }
+  }
+
+  function resetSpeciesReference(message) {
+    speciesReferenceRequests.cancel();
+    clearSpeciesReferenceDisplay();
+    if (elements.speciesReferenceStatus) {
+      elements.speciesReferenceStatus.textContent =
+        message || "請點選地圖標記或潛點清單以讀取物種參考圖片與歷史生態證據。";
+    }
+  }
+
+  function setSpeciesReferenceBusy(busy) {
+    speciesReferenceBusy = busy;
+    if (elements.speciesReferenceSection) {
+      elements.speciesReferenceSection.setAttribute("aria-busy", busy ? "true" : "false");
+    }
+    if (elements.speciesReferenceRefresh) {
+      elements.speciesReferenceRefresh.disabled = busy;
+    }
+  }
+
+  function renderSpeciesReferenceDisclaimers(disclaimers) {
+    if (!elements.speciesReferenceDisclaimers) return;
+    elements.speciesReferenceDisclaimers.replaceChildren();
+    const list = Array.isArray(disclaimers) ? disclaimers : [];
+    list.forEach((item) => {
+      if (typeof item !== "string" || !item.trim()) return;
+      const li = document.createElement("li");
+      li.textContent = item.trim();
+      elements.speciesReferenceDisclaimers.append(li);
+    });
+  }
+
+  function renderSpeciesReferenceCard(item) {
+    const card = document.createElement("article");
+    card.className = "species-reference-card";
+
+    const header = document.createElement("div");
+    header.className = "species-card-header";
+    const title = document.createElement("h4");
+    title.className = "species-card-title";
+    title.textContent = safeText(item.species_chinese_name, "未命名物種");
+
+    const sciName = document.createElement("span");
+    sciName.className = "species-sci-name";
+    const em = document.createElement("em");
+    em.textContent = safeText(item.species_scientific_name);
+    sciName.append(" (", em, ")");
+    title.append(" ", sciName);
+    header.append(title);
+
+    if (item.taxonomic_notes) {
+      const noteP = document.createElement("p");
+      noteP.className = "species-taxonomic-note";
+      const noteLabel = document.createElement("strong");
+      noteLabel.textContent = "分類註記：";
+      noteP.append(noteLabel, safeText(item.taxonomic_notes));
+      header.append(noteP);
+    }
+    card.append(header);
+
+    const badge = document.createElement("div");
+    badge.className = "species-card-badge";
+    badge.textContent = safeText(item.purpose_specification, "物種外觀參考（非潛點現場拍攝，亦不代表該物種目前可見）");
+    card.append(badge);
+
+    const url = typeof item.image_url === "string" ? item.image_url : "";
+    if (url.startsWith("/static/curated-media/species-reference/") && !url.includes("..")) {
+      const figure = document.createElement("figure");
+      figure.className = "species-card-figure";
+      const img = document.createElement("img");
+      img.src = url;
+      img.alt = `${safeText(item.species_chinese_name)} 外觀參考照片`;
+      img.loading = "lazy";
+      img.addEventListener("error", () => {
+        figure.replaceChildren();
+        const fallback = document.createElement("p");
+        fallback.className = "media-fallback";
+        fallback.textContent = "物種參考圖片目前無法載入；未以未授權圖片替代。";
+        figure.append(fallback);
+      }, { once: true });
+
+      const figcaption = document.createElement("figcaption");
+      const attribP = document.createElement("p");
+      attribP.className = "image-attribution";
+      attribP.textContent = `攝影／作者：${safeText(item.image_author)} ｜ 授權：${safeText(item.image_license)}`;
+      figcaption.append(attribP);
+
+      if (item.source_page_url) {
+        const sourceLink = createSafeLink("查看來源網頁與授權", item.source_page_url);
+        if (sourceLink) figcaption.append(sourceLink);
+      }
+      figure.append(img, figcaption);
+      card.append(figure);
+    } else {
+      const noImgP = document.createElement("p");
+      noImgP.className = "media-fallback";
+      noImgP.textContent = "無可公開之物種外觀參考圖檔。";
+      card.append(noImgP);
+    }
+
+    const evidenceSection = document.createElement("div");
+    evidenceSection.className = "species-card-evidence";
+    const evTitle = document.createElement("h5");
+    evTitle.textContent = "對照之歷史生態調查證據";
+    evidenceSection.append(evTitle);
+
+    const dl = document.createElement("dl");
+    dl.className = "species-evidence-fields";
+
+    appendEvidenceField(dl, "證據類型", safeText(item.evidence_type_label, item.evidence_type));
+    appendEvidenceField(dl, "調查方法", safeText(item.survey_method));
+    appendEvidenceField(dl, "記錄／採樣日期", safeText(item.record_date));
+    appendEvidenceField(
+      dl,
+      "距潛點距離",
+      typeof item.distance_m === "number"
+        ? `${item.distance_m.toFixed(1)} 公尺`
+        : RAW_VALUE_MISSING,
+    );
+    appendEvidenceField(dl, "資料來源", safeText(item.evidence_source));
+    appendEvidenceField(dl, "資料授權", safeText(item.evidence_license));
+    appendEvidenceField(dl, "證據限制", safeText(item.evidence_constraints));
+
+    evidenceSection.append(dl);
+    card.append(evidenceSection);
+
+    return card;
+  }
+
+  async function loadSpeciesReferenceImages(site) {
+    if (!site || !site.id) {
+      resetSpeciesReference();
+      return;
+    }
+
+    const token = speciesReferenceRequests.start(safeText(site.id, ""));
+    clearSpeciesReferenceDisplay();
+    setSpeciesReferenceBusy(true);
+    elements.speciesReferenceStatus.textContent = "正在讀取物種外觀參考圖片與核定生態證據對照...";
+
+    try {
+      const url = `/api/dive-sites/${encodeURIComponent(site.id)}/species-reference-images`;
+      const response = await fetch(url, {
+        headers: { Accept: "application/json" },
+        signal: token.signal,
+      });
+
+      if (!speciesReferenceRequests.isCurrent(token, selectedSite ? safeText(selectedSite.id, "") : null)) return;
+
+      if (response.status === 404) {
+        clearSpeciesReferenceDisplay();
+        elements.speciesReferenceStatus.textContent = "此潛點不存在或未核驗；無法取得物種參考資料。";
+        return;
+      }
+
+      if (response.status === 503) {
+        clearSpeciesReferenceDisplay();
+        elements.speciesReferenceStatus.textContent = "物種參考資料驗證失敗（503）；為確保安全，未顯示未核實資料。";
+        return;
+      }
+
+      if (!response.ok) {
+        clearSpeciesReferenceDisplay();
+        elements.speciesReferenceStatus.textContent = `物種參考 API 查詢失敗（HTTP ${response.status}）；未顯示任何資料。`;
+        return;
+      }
+
+      try {
+        const payload = await response.json();
+        if (!speciesReferenceRequests.isCurrent(token, selectedSite ? safeText(selectedSite.id, "") : null)) return;
+
+        if (!payload || payload.status !== "ok" || !Array.isArray(payload.items)) {
+          clearSpeciesReferenceDisplay();
+          elements.speciesReferenceStatus.textContent = "物種參考資料回應格式不符；未顯示任何項目。";
+          return;
+        }
+
+        if (payload.items.length === 0) {
+          clearSpeciesReferenceDisplay();
+          elements.speciesReferenceStatus.textContent = "此潛點目前無可公開之物種外觀參考圖片與核定生態證據對照。";
+          return;
+        }
+
+        elements.speciesReferenceList.replaceChildren(
+          ...payload.items.map((item) => renderSpeciesReferenceCard(item)),
+        );
+        renderSpeciesReferenceDisclaimers(payload.disclaimers);
+        elements.speciesReferenceContent.hidden = false;
+        elements.speciesReferenceStatus.textContent = `已載入 ${payload.items.length} 筆已核准之物種外觀參考與歷史生態證據。此圖片非潛點現場拍攝，亦不代表該物種目前可見。`;
+      } catch (_jsonErr) {
+        if (!speciesReferenceRequests.isCurrent(token, selectedSite ? safeText(selectedSite.id, "") : null)) return;
+        clearSpeciesReferenceDisplay();
+        elements.speciesReferenceStatus.textContent = "物種參考資料解析失敗；未顯示任何資料。";
+      }
+    } catch (error) {
+      if (error && error.name === "AbortError") return;
+      if (!speciesReferenceRequests.isCurrent(token, selectedSite ? safeText(selectedSite.id, "") : null)) return;
+      clearSpeciesReferenceDisplay();
+      elements.speciesReferenceStatus.textContent = "無法連線至物種參考 API；未顯示任何舊資料。";
+    } finally {
+      if (speciesReferenceRequests.isCurrent(token, selectedSite ? safeText(selectedSite.id, "") : null)) {
+        speciesReferenceRequests.finish(token);
+        setSpeciesReferenceBusy(false);
+      }
+    }
+  }
+
+  function clearProfileQaDisplay() {
+    if (elements.profileQaAnswerContainer) {
+      elements.profileQaAnswerContainer.hidden = true;
+    }
+    if (elements.profileQaAnswerText) {
+      elements.profileQaAnswerText.textContent = "";
+    }
+    if (elements.profileQaCitationsSection) {
+      elements.profileQaCitationsSection.hidden = true;
+    }
+    if (elements.profileQaCitationsList) {
+      elements.profileQaCitationsList.replaceChildren();
+    }
+  }
+
+  function updateProfileQaCounter() {
+    if (!elements.profileQaInput || !elements.profileQaCounter) return;
+    const currentLen = elements.profileQaInput.value.length;
+    elements.profileQaCounter.textContent = `${currentLen} / 500 字`;
+  }
+
+  function updateProfileQaControls() {
+    if (!elements.profileQaInput || !elements.profileQaSubmit) return;
+    const hasSite = Boolean(selectedSite && selectedSite.id);
+    elements.profileQaInput.disabled = !hasSite || profileQaBusy;
+
+    const trimmedLen = elements.profileQaInput.value.trim().length;
+    const isValidLen = trimmedLen >= 2 && trimmedLen <= 500;
+    elements.profileQaSubmit.disabled = !hasSite || profileQaBusy || !isValidLen;
+  }
+
+  function resetProfileQa(message, { clearInput = true } = {}) {
+    profileQaRequests.cancel();
+    profileQaBusy = false;
+    if (elements.profileQaSection) {
+      elements.profileQaSection.setAttribute("aria-busy", "false");
+    }
+    clearProfileQaDisplay();
+    if (clearInput && elements.profileQaInput) {
+      elements.profileQaInput.value = "";
+    }
+    updateProfileQaCounter();
+    updateProfileQaControls();
+    if (elements.profileQaStatus) {
+      elements.profileQaStatus.textContent =
+        message || "請點選地圖標記或潛點清單以啟用問答。";
+    }
+  }
+
+  function setProfileQaBusy(busy) {
+    profileQaBusy = busy;
+    if (elements.profileQaSection) {
+      elements.profileQaSection.setAttribute("aria-busy", busy ? "true" : "false");
+    }
+    updateProfileQaControls();
+  }
+
+  function renderProfileQaCitationCard(cit) {
+    if (!cit || typeof cit !== "object") return null;
+
+    const card = document.createElement("article");
+    card.className = "profile-qa-citation-card";
+
+    const header = document.createElement("div");
+    header.className = "profile-qa-citation-header";
+
+    const badge = document.createElement("span");
+    badge.className = "profile-qa-citation-badge";
+    badge.textContent = safeText(cit.citation_id, "引用");
+
+    const title = document.createElement("h5");
+    title.className = "profile-qa-citation-title";
+    title.textContent = safeText(cit.source_name, "官方來源");
+
+    header.append(badge, title);
+    card.append(header);
+
+    const dl = document.createElement("dl");
+    dl.className = "profile-qa-citation-fields";
+
+    appendEvidenceField(dl, "潛點名稱", cit.site_name);
+    appendEvidenceField(dl, "資料章節", cit.section_type);
+    appendEvidenceField(dl, "授權條款", cit.license_and_attribution);
+    appendEvidenceField(dl, "宣告標示", cit.required_attribution);
+    appendEvidenceField(dl, "使用限制", cit.limitations);
+
+    const safeUrl = safeHttpsUrl(cit.source_url);
+    if (safeUrl) {
+      appendEvidenceField(
+        dl,
+        "官方來源",
+        createSafeLink("開啟官方 HTTPS 來源（新視窗）", safeUrl),
+      );
+    } else {
+      appendEvidenceField(dl, "官方來源", "未提供有效 HTTPS 來源網址");
+    }
+
+    card.append(dl);
+    return card;
+  }
+
+  async function submitProfileQuestion() {
+    if (!selectedSite || !selectedSite.id) {
+      resetProfileQa("請先選擇潛點再提問。");
+      return;
+    }
+    if (!elements.profileQaInput) return;
+
+    const rawQuestion = elements.profileQaInput.value;
+    const cleanQuestion = rawQuestion.trim();
+    if (cleanQuestion.length < 2 || cleanQuestion.length > 500) {
+      if (elements.profileQaStatus) {
+        elements.profileQaStatus.textContent = "提問字數須在 2 至 500 字元之間。";
+      }
+      updateProfileQaControls();
+      return;
+    }
+
+    const siteId = safeText(selectedSite.id, "");
+    const token = profileQaRequests.start(siteId);
+    clearProfileQaDisplay();
+    setProfileQaBusy(true);
+    elements.profileQaStatus.textContent = `正在向 ${safeText(selectedSite.name)} 的官方背景資料庫查詢回答…`;
+
+    try {
+      const url = `/api/dive-sites/${encodeURIComponent(siteId)}/ask-profile`;
+      const response = await fetch(url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Accept": "application/json",
+        },
+        credentials: "same-origin",
+        cache: "no-store",
+        body: JSON.stringify({ question: cleanQuestion }),
+        signal: token.signal,
+      });
+
+      if (!profileQaRequests.isCurrent(token, selectedSite ? safeText(selectedSite.id, "") : null)) return;
+
+      if (response.status === 404) {
+        clearProfileQaDisplay();
+        elements.profileQaStatus.textContent = "找不到目前選取的潛點代碼（404）；未顯示任何回答。";
+        return;
+      }
+      if (response.status === 422) {
+        clearProfileQaDisplay();
+        elements.profileQaStatus.textContent = "提問格式或字數不合規範（422）；未顯示任何回答。";
+        return;
+      }
+      if (response.status === 503) {
+        clearProfileQaDisplay();
+        elements.profileQaStatus.textContent = "潛點介紹資料來源或索引校驗失敗（503）；暫時無法提供問答服務。";
+        return;
+      }
+      if (response.status === 500) {
+        clearProfileQaDisplay();
+        elements.profileQaStatus.textContent = "伺服器處理問答時發生未預期異常（500）；請稍後再試。";
+        return;
+      }
+      if (!response.ok) {
+        clearProfileQaDisplay();
+        elements.profileQaStatus.textContent = `問答服務連線異常（HTTP ${response.status}）；請稍後再試。`;
+        return;
+      }
+
+      try {
+        const payload = await response.json();
+        if (!profileQaRequests.isCurrent(token, selectedSite ? safeText(selectedSite.id, "") : null)) return;
+
+        if (!payload || typeof payload !== "object") {
+          clearProfileQaDisplay();
+          elements.profileQaStatus.textContent = "問答回應格式無法辨識；未顯示任何回答。";
+          return;
+        }
+
+        if (payload.status === "answerable") {
+          const answerText = typeof payload.answer_zh_hant === "string" ? payload.answer_zh_hant.trim() : "";
+          if (!answerText) {
+            clearProfileQaDisplay();
+            elements.profileQaStatus.textContent = "目前潛點官方資料不足以回答此問題。";
+            return;
+          }
+          elements.profileQaAnswerText.textContent = answerText;
+          elements.profileQaAnswerContainer.hidden = false;
+
+          elements.profileQaCitationsList.replaceChildren();
+          if (Array.isArray(payload.citations) && payload.citations.length > 0) {
+            payload.citations.forEach((cit) => {
+              const card = renderProfileQaCitationCard(cit);
+              if (card) elements.profileQaCitationsList.append(card);
+            });
+            elements.profileQaCitationsSection.hidden = elements.profileQaCitationsList.children.length === 0;
+          } else {
+            elements.profileQaCitationsSection.hidden = true;
+          }
+          elements.profileQaStatus.textContent = "已依官方核准背景完成回答。";
+        } else if (payload.status === "safety_intercepted") {
+          clearProfileQaDisplay();
+          elements.profileQaStatus.textContent = safeText(
+            payload.answer_zh_hant,
+            "此問題涉及即時海況安全、醫療急救、入水動線或法規許可，已依安全契約攔截。",
+          );
+        } else if (payload.status === "insufficient_evidence") {
+          clearProfileQaDisplay();
+          elements.profileQaStatus.textContent = safeText(
+            payload.answer_zh_hant,
+            "目前潛點官方資料不足以回答此問題。",
+          );
+        } else if (payload.status === "unconfigured_llm") {
+          clearProfileQaDisplay();
+          elements.profileQaStatus.textContent = safeText(
+            payload.answer_zh_hant,
+            "尚未設定語言模型服務，請先設定相關環境變數。",
+          );
+        } else if (payload.status === "llm_call_failed") {
+          clearProfileQaDisplay();
+          elements.profileQaStatus.textContent = safeText(
+            payload.answer_zh_hant,
+            "語言模型服務暫時無法連線，已依安全契約中斷處理。",
+          );
+        } else {
+          clearProfileQaDisplay();
+          elements.profileQaStatus.textContent = safeText(
+            payload.answer_zh_hant,
+            "問答處理受阻，已依安全契約中止。",
+          );
+        }
+      } catch (_jsonErr) {
+        if (!profileQaRequests.isCurrent(token, selectedSite ? safeText(selectedSite.id, "") : null)) return;
+        clearProfileQaDisplay();
+        elements.profileQaStatus.textContent = "問答回應解析失敗；未顯示任何回答。";
+      }
+    } catch (error) {
+      if (error && error.name === "AbortError") return;
+      if (!profileQaRequests.isCurrent(token, selectedSite ? safeText(selectedSite.id, "") : null)) return;
+      clearProfileQaDisplay();
+      elements.profileQaStatus.textContent = "無法連線至問答服務；請確認網路連線後再試。";
+    } finally {
+      if (profileQaRequests.isCurrent(token, selectedSite ? safeText(selectedSite.id, "") : null)) {
+        profileQaRequests.finish(token);
+        setProfileQaBusy(false);
+      }
+    }
+  }
+
+  function clearProfileEdnaQaDisplay() {
+    if (elements.profileEdnaQaAnswerContainer) {
+      elements.profileEdnaQaAnswerContainer.hidden = true;
+    }
+    if (elements.profileEdnaQaAnswerText) {
+      elements.profileEdnaQaAnswerText.textContent = "";
+    }
+    if (elements.profileEdnaQaCitationsSection) {
+      elements.profileEdnaQaCitationsSection.hidden = true;
+    }
+    if (elements.profileEdnaQaCitationsList) {
+      elements.profileEdnaQaCitationsList.replaceChildren();
+    }
+  }
+
+  function updateProfileEdnaQaCounter() {
+    if (!elements.profileEdnaQaInput || !elements.profileEdnaQaCounter) return;
+    const currentLen = elements.profileEdnaQaInput.value.length;
+    elements.profileEdnaQaCounter.textContent = `${currentLen} / 500 字`;
+  }
+
+  function updateProfileEdnaQaControls() {
+    if (!elements.profileEdnaQaInput || !elements.profileEdnaQaSubmit || !elements.profileEdnaQaRadius) return;
+    const hasSite = Boolean(selectedSite && selectedSite.id);
+    elements.profileEdnaQaRadius.disabled = !hasSite || profileEdnaQaBusy;
+    elements.profileEdnaQaInput.disabled = !hasSite || profileEdnaQaBusy;
+
+    const rawRadius = elements.profileEdnaQaRadius.value;
+    const radiusInt = parseInt(rawRadius, 10);
+    const hasValidRadius = Boolean(rawRadius && !Number.isNaN(radiusInt) && [500, 1000, 2000, 5000].includes(radiusInt));
+
+    const trimmedLen = elements.profileEdnaQaInput.value.trim().length;
+    const isValidLen = trimmedLen >= 2 && trimmedLen <= 500;
+    elements.profileEdnaQaSubmit.disabled = !hasSite || profileEdnaQaBusy || !hasValidRadius || !isValidLen;
+  }
+
+  function resetProfileEdnaQa(message, { clearInput = true, resetRadius = false } = {}) {
+    profileEdnaQaRequests.cancel();
+    profileEdnaQaBusy = false;
+    if (elements.profileEdnaQaSection) {
+      elements.profileEdnaQaSection.setAttribute("aria-busy", "false");
+    }
+    clearProfileEdnaQaDisplay();
+    if (resetRadius && elements.profileEdnaQaRadius) {
+      elements.profileEdnaQaRadius.value = "";
+    }
+    if (clearInput && elements.profileEdnaQaInput) {
+      elements.profileEdnaQaInput.value = "";
+    }
+    updateProfileEdnaQaCounter();
+    updateProfileEdnaQaControls();
+    if (elements.profileEdnaQaStatus) {
+      elements.profileEdnaQaStatus.textContent =
+        message || "請點選地圖標記或潛點清單以啟用問答。";
+    }
+  }
+
+  function setProfileEdnaQaBusy(busy) {
+    profileEdnaQaBusy = busy;
+    if (elements.profileEdnaQaSection) {
+      elements.profileEdnaQaSection.setAttribute("aria-busy", busy ? "true" : "false");
+    }
+    updateProfileEdnaQaControls();
+  }
+
+  function renderProfileEdnaQaCitationCard(cit) {
+    if (!cit || typeof cit !== "object") return null;
+
+    const card = document.createElement("article");
+    card.className = "profile-edna-qa-citation-card";
+
+    const header = document.createElement("div");
+    header.className = "profile-edna-qa-citation-header";
+
+    const badge = document.createElement("span");
+    badge.className = "profile-edna-qa-citation-badge";
+    badge.textContent = safeText(cit.citation_id, "eDNA 引用");
+
+    const title = document.createElement("h5");
+    title.className = "profile-edna-qa-citation-title";
+    title.textContent = safeText(cit.source_name, "海洋保育署 eDNA 採樣資料");
+
+    header.append(badge, title);
+    card.append(header);
+
+    const dl = document.createElement("dl");
+    dl.className = "profile-edna-qa-citation-fields";
+
+    appendEvidenceField(dl, "潛點名稱", cit.site_name);
+    appendEvidenceField(dl, "資料性質", cit.data_nature);
+    if (cit.radius_m != null) {
+      appendEvidenceField(dl, "搜尋半徑", `${cit.radius_m} 公尺`);
+    }
+    if (cit.distance_m != null) {
+      appendEvidenceField(dl, "距代表點", `${cit.distance_m} 公尺`);
+    }
+    appendEvidenceField(dl, "測站代號", cit.station_id);
+    appendEvidenceField(dl, "採樣日期", cit.sampled_at);
+
+    if (cit.sample_position && typeof cit.sample_position === "object") {
+      const lat = cit.sample_position.latitude;
+      const lon = cit.sample_position.longitude;
+      const crs = safeText(cit.sample_position.coordinate_reference_system, "WGS84");
+      if (lat != null && lon != null) {
+        appendEvidenceField(dl, "採樣座標", `${lat}, ${lon} (${crs})`);
+      }
+    }
+
+    const taxa = [cit.chinese_name, cit.scientific_name].filter(Boolean).join(" / ");
+    if (taxa) {
+      appendEvidenceField(dl, "檢出分類群", taxa);
+    }
+
+    appendEvidenceField(dl, "來源定位器", cit.source_record_id);
+    appendEvidenceField(dl, "授權條款", cit.license_name);
+    appendEvidenceField(dl, "宣告標示", cit.required_attribution);
+
+    if (Array.isArray(cit.limitations) && cit.limitations.length > 0) {
+      appendEvidenceField(dl, "限制說明", cit.limitations.join("；"));
+    } else if (cit.limitations) {
+      appendEvidenceField(dl, "限制說明", cit.limitations);
+    }
+
+    const safeUrl = safeHttpsUrl(cit.source_url);
+    if (safeUrl) {
+      appendEvidenceField(
+        dl,
+        "官方資料集",
+        createSafeLink("開啟官方資料集 HTTPS 網址（新視窗）", safeUrl),
+      );
+    } else {
+      appendEvidenceField(dl, "官方資料集", "未提供有效 HTTPS 來源網址");
+    }
+
+    card.append(dl);
+    return card;
+  }
+
+  async function submitProfileEdnaQuestion() {
+    if (!selectedSite || !selectedSite.id) {
+      resetProfileEdnaQa("請先選擇潛點再提問。");
+      return;
+    }
+    if (!elements.profileEdnaQaInput || !elements.profileEdnaQaRadius) return;
+
+    const rawRadius = elements.profileEdnaQaRadius.value;
+    const radiusInt = parseInt(rawRadius, 10);
+    if (!rawRadius || Number.isNaN(radiusInt) || ![500, 1000, 2000, 5000].includes(radiusInt)) {
+      if (elements.profileEdnaQaStatus) {
+        elements.profileEdnaQaStatus.textContent = "請先選擇搜尋半徑（500、1,000、2,000 或 5,000 公尺）。";
+      }
+      updateProfileEdnaQaControls();
+      return;
+    }
+
+    const rawQuestion = elements.profileEdnaQaInput.value;
+    const cleanQuestion = rawQuestion.trim();
+    if (cleanQuestion.length < 2 || cleanQuestion.length > 500) {
+      if (elements.profileEdnaQaStatus) {
+        elements.profileEdnaQaStatus.textContent = "提問字數須在 2 至 500 字元之間。";
+      }
+      updateProfileEdnaQaControls();
+      return;
+    }
+
+    const siteId = safeText(selectedSite.id, "");
+    const token = profileEdnaQaRequests.start(siteId);
+    clearProfileEdnaQaDisplay();
+    setProfileEdnaQaBusy(true);
+    elements.profileEdnaQaStatus.textContent = `正在向 ${safeText(selectedSite.name)} 的歷史 eDNA 採樣資料庫查詢回答（半徑 ${radiusInt.toLocaleString()} 公尺）…`;
+
+    try {
+      const url = `/api/dive-sites/${encodeURIComponent(siteId)}/ask-edna`;
+      const response = await fetch(url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Accept": "application/json",
+        },
+        credentials: "same-origin",
+        cache: "no-store",
+        body: JSON.stringify({ question: cleanQuestion, radius_m: radiusInt }),
+        signal: token.signal,
+      });
+
+      if (!profileEdnaQaRequests.isCurrent(token, selectedSite ? safeText(selectedSite.id, "") : null)) return;
+
+      if (response.status === 404) {
+        clearProfileEdnaQaDisplay();
+        elements.profileEdnaQaStatus.textContent = "找不到目前選取的潛點代碼（404）；未顯示任何回答。";
+        return;
+      }
+      if (response.status === 422) {
+        clearProfileEdnaQaDisplay();
+        elements.profileEdnaQaStatus.textContent = "提問格式、半徑或字數不合規範（422）；未顯示任何回答。";
+        return;
+      }
+      if (response.status === 503) {
+        clearProfileEdnaQaDisplay();
+        elements.profileEdnaQaStatus.textContent = "結構化 eDNA 資料庫不可用或校驗失敗（503）；暫時無法提供問答服務。";
+        return;
+      }
+      if (response.status === 500) {
+        clearProfileEdnaQaDisplay();
+        elements.profileEdnaQaStatus.textContent = "伺服器處理問答時發生未預期異常（500）；請稍後再試。";
+        return;
+      }
+      if (!response.ok) {
+        clearProfileEdnaQaDisplay();
+        elements.profileEdnaQaStatus.textContent = `問答服務連線異常（HTTP ${response.status}）；請稍後再試。`;
+        return;
+      }
+
+      try {
+        const payload = await response.json();
+        if (!profileEdnaQaRequests.isCurrent(token, selectedSite ? safeText(selectedSite.id, "") : null)) return;
+
+        if (!payload || typeof payload !== "object") {
+          clearProfileEdnaQaDisplay();
+          elements.profileEdnaQaStatus.textContent = "問答回應格式無法辨識；未顯示任何回答。";
+          return;
+        }
+
+        if (payload.status === "answerable") {
+          const answerText = typeof payload.answer_zh_hant === "string" ? payload.answer_zh_hant.trim() : "";
+          if (!answerText) {
+            clearProfileEdnaQaDisplay();
+            elements.profileEdnaQaStatus.textContent = "目前潛點周邊資料不足以回答此問題。";
+            return;
+          }
+          elements.profileEdnaQaAnswerText.textContent = answerText;
+          elements.profileEdnaQaAnswerContainer.hidden = false;
+
+          elements.profileEdnaQaCitationsList.replaceChildren();
+          if (Array.isArray(payload.citations) && payload.citations.length > 0) {
+            payload.citations.forEach((cit) => {
+              const card = renderProfileEdnaQaCitationCard(cit);
+              if (card) elements.profileEdnaQaCitationsList.append(card);
+            });
+            elements.profileEdnaQaCitationsSection.hidden = elements.profileEdnaQaCitationsList.children.length === 0;
+          } else {
+            elements.profileEdnaQaCitationsSection.hidden = true;
+          }
+          elements.profileEdnaQaStatus.textContent = "已依周邊歷史 eDNA 採樣紀錄完成回答。";
+        } else if (payload.status === "scope_guidance") {
+          clearProfileEdnaQaDisplay();
+          elements.profileEdnaQaStatus.textContent = safeText(
+            payload.answer_zh_hant,
+            "此問題屬景點背景介紹範疇，請改用上方「官方背景問答」提問。",
+          );
+        } else if (payload.status === "safety_intercepted") {
+          clearProfileEdnaQaDisplay();
+          elements.profileEdnaQaStatus.textContent = safeText(
+            payload.answer_zh_hant,
+            "此問題涉及即時海況安全、下水判斷、醫療急救或出沒保證，已依安全契約攔截。",
+          );
+        } else if (payload.status === "insufficient_evidence") {
+          clearProfileEdnaQaDisplay();
+          elements.profileEdnaQaStatus.textContent = safeText(
+            payload.answer_zh_hant,
+            "指定半徑內無相關歷史 eDNA 採樣紀錄。",
+          );
+        } else if (payload.status === "unconfigured_llm") {
+          clearProfileEdnaQaDisplay();
+          elements.profileEdnaQaStatus.textContent = safeText(
+            payload.answer_zh_hant,
+            "尚未設定語言模型服務，請先設定相關環境變數。",
+          );
+        } else if (payload.status === "llm_call_failed") {
+          clearProfileEdnaQaDisplay();
+          elements.profileEdnaQaStatus.textContent = safeText(
+            payload.answer_zh_hant,
+            "語言模型服務暫時無法連線，已依安全契約中斷處理。",
+          );
+        } else {
+          clearProfileEdnaQaDisplay();
+          elements.profileEdnaQaStatus.textContent = safeText(
+            payload.answer_zh_hant,
+            "問答處理受阻，已依安全契約中止。",
+          );
+        }
+      } catch (_jsonErr) {
+        if (!profileEdnaQaRequests.isCurrent(token, selectedSite ? safeText(selectedSite.id, "") : null)) return;
+        clearProfileEdnaQaDisplay();
+        elements.profileEdnaQaStatus.textContent = "問答回應解析失敗；未顯示任何回答。";
+      }
+    } catch (error) {
+      if (error && error.name === "AbortError") return;
+      if (!profileEdnaQaRequests.isCurrent(token, selectedSite ? safeText(selectedSite.id, "") : null)) return;
+      clearProfileEdnaQaDisplay();
+      elements.profileEdnaQaStatus.textContent = "無法連線至問答服務；請確認網路連線後再試。";
+    } finally {
+      if (profileEdnaQaRequests.isCurrent(token, selectedSite ? safeText(selectedSite.id, "") : null)) {
+        profileEdnaQaRequests.finish(token);
+        setProfileEdnaQaBusy(false);
+      }
+    }
+  }
+
   function focusManualQuery(panel, control) {
     panel.scrollIntoView({ block: "start", behavior: "smooth" });
     control.focus({ preventScroll: true });
@@ -1185,7 +2392,16 @@
         `已選擇 ${safeText(site.name)}。請先選擇預報範圍，再按下「查看行政區天氣預報」。`,
         { resetRange: true },
       );
+      resetProfileQa(
+        `已切換至 ${safeText(site.name)}。請輸入 2 至 500 字元的繁體中文問題並送出。`,
+      );
+      resetProfileEdnaQa(
+        `已切換至 ${safeText(site.name)}。請先選擇搜尋半徑並輸入提問內容。`,
+        { resetRadius: true },
+      );
       loadSelectedSiteProfile();
+      loadNearbyMarineContext(site);
+      loadSpeciesReferenceImages(site);
     }
 
     elements.detailName.textContent = safeText(site.name);
@@ -1276,12 +2492,16 @@
   }
 
   function showEmptyState() {
+    resetProfileQa("目前沒有已驗證潛點可提問。");
+    resetProfileEdnaQa("目前沒有已驗證潛點可提問。");
     elements.list.replaceChildren();
     elements.count.textContent = "0 筆";
     elements.dataStatus.textContent = "目前沒有已驗證潛點可顯示；系統不會以假資料補足。";
   }
 
   function showLoadError(message) {
+    resetProfileQa(message);
+    resetProfileEdnaQa(message);
     elements.list.replaceChildren();
     elements.count.textContent = "";
     elements.dataStatus.textContent = message;
@@ -1375,6 +2595,49 @@
   elements.profileToWeather.addEventListener("click", () => {
     focusManualQuery(elements.weatherPanel, elements.weatherRange);
   });
+  if (elements.nearbyMarineRefresh) {
+    elements.nearbyMarineRefresh.addEventListener("click", () => {
+      if (selectedSite) {
+        loadNearbyMarineContext(selectedSite);
+      }
+    });
+  }
+  if (elements.speciesReferenceRefresh) {
+    elements.speciesReferenceRefresh.addEventListener("click", () => {
+      if (selectedSite) {
+        loadSpeciesReferenceImages(selectedSite);
+      }
+    });
+  }
+  if (elements.profileQaInput) {
+    elements.profileQaInput.addEventListener("input", () => {
+      updateProfileQaCounter();
+      updateProfileQaControls();
+    });
+  }
+  if (elements.profileQaForm) {
+    elements.profileQaForm.addEventListener("submit", (event) => {
+      event.preventDefault();
+      submitProfileQuestion();
+    });
+  }
+  if (elements.profileEdnaQaInput) {
+    elements.profileEdnaQaInput.addEventListener("input", () => {
+      updateProfileEdnaQaCounter();
+      updateProfileEdnaQaControls();
+    });
+  }
+  if (elements.profileEdnaQaRadius) {
+    elements.profileEdnaQaRadius.addEventListener("change", () => {
+      updateProfileEdnaQaControls();
+    });
+  }
+  if (elements.profileEdnaQaForm) {
+    elements.profileEdnaQaForm.addEventListener("submit", (event) => {
+      event.preventDefault();
+      submitProfileEdnaQuestion();
+    });
+  }
 
   if (!ednaTools) {
     resetEdnaQuery("附近歷史 eDNA 查詢元件無法載入；潛點基本資料仍可使用。");
@@ -1392,6 +2655,8 @@
     updateWeatherControls();
   }
   updateProfileShortcutControls();
+  resetProfileQa("請點選地圖標記或潛點清單以啟用問答。");
+  resetProfileEdnaQa("請點選地圖標記或潛點清單以啟用問答。");
 
   const notice = document.querySelector(".representative-point-notice");
   if (notice) notice.textContent = REPRESENTATIVE_POINT_NOTICE;

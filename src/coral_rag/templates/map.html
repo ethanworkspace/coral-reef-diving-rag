@@ -110,6 +110,126 @@
               </div>
             </section>
 
+            <section id="profile-nearby-marine" class="profile-section profile-nearby-marine" aria-labelledby="profile-nearby-marine-heading">
+              <div class="nearby-marine-heading-row">
+                <h3 id="profile-nearby-marine-heading">附近海域模式參考（非潛點現場量測）</h3>
+                <button id="nearby-marine-refresh" type="button" class="refresh-button">重新查詢</button>
+              </div>
+              <p id="nearby-marine-status" class="nearby-marine-status" role="status" aria-live="polite">請點選地圖標記或潛點清單以讀取附近海域模式資料。</p>
+              <div id="nearby-marine-content" hidden>
+                <div class="nearby-marine-meta">
+                  <dl id="nearby-marine-meta-fields"></dl>
+                </div>
+                <div class="nearby-marine-items-container">
+                  <h4>波浪與海流數值模式預報</h4>
+                  <ol id="nearby-marine-items" class="evidence-results"></ol>
+                </div>
+                <div class="nearby-marine-limitations">
+                  <h4>資料解讀限制與聲明</h4>
+                  <ul id="nearby-marine-disclaimers" class="profile-limitations"></ul>
+                </div>
+              </div>
+            </section>
+
+            <section id="profile-species-reference" class="profile-section profile-species-reference" aria-labelledby="profile-species-reference-heading">
+              <div class="species-reference-heading-row">
+                <h3 id="profile-species-reference-heading">歷史生態證據與物種外觀參考（非潛點現場量測／非實拍）</h3>
+                <button id="species-reference-refresh" type="button" class="refresh-button">重新查詢</button>
+              </div>
+              <p id="species-reference-status" class="species-reference-status" role="status" aria-live="polite">請點選地圖標記或潛點清單以讀取物種參考圖片與歷史生態證據。</p>
+              <div id="species-reference-content" hidden>
+                <div class="species-reference-notice">
+                  <span class="warning-tag">重要聲明</span>
+                  <span class="notice-text">物種外觀參考（非潛點現場拍攝，亦不代表該物種目前可見）</span>
+                </div>
+                <div id="species-reference-list" class="species-reference-card-list"></div>
+                <div class="species-reference-limitations">
+                  <h4>資料解讀限制與聲明</h4>
+                  <ul id="species-reference-disclaimers" class="profile-limitations"></ul>
+                </div>
+              </div>
+            </section>
+
+            <section id="profile-qa" class="profile-section profile-qa-section" aria-labelledby="profile-qa-heading">
+              <div class="profile-qa-heading-row">
+                <h3 id="profile-qa-heading">官方背景問答（受控繁中檢索回答）</h3>
+              </div>
+              <p class="profile-qa-disclaimer">免責說明：回答僅依官方核准景點背景，不提供入水位置、即時海況、安全、合法性或活動建議。</p>
+              <form id="profile-qa-form" class="profile-qa-form">
+                <label for="profile-qa-input" class="profile-qa-label">提問內容（2–500 字元）</label>
+                <textarea
+                  id="profile-qa-input"
+                  name="question"
+                  class="profile-qa-textarea"
+                  rows="3"
+                  maxlength="500"
+                  placeholder="請先選取潛點；可針對官方背景、地理環境或活動歷史提問…"
+                  aria-describedby="profile-qa-counter profile-qa-hint"
+                  disabled
+                ></textarea>
+                <div class="profile-qa-form-footer">
+                  <span id="profile-qa-counter" class="profile-qa-counter" aria-live="polite">0 / 500 字</span>
+                  <button id="profile-qa-submit" type="submit" class="profile-qa-submit-button" disabled>送出提問</button>
+                </div>
+                <p id="profile-qa-hint" class="field-note visually-hidden">請輸入 2 至 500 字元之繁體中文提問。</p>
+              </form>
+              <div id="profile-qa-output" class="profile-qa-output">
+                <p id="profile-qa-status" class="profile-qa-status" role="status" aria-live="polite">請點選地圖標記或潛點清單以啟用問答。</p>
+                <div id="profile-qa-answer-container" class="profile-qa-answer-container" hidden>
+                  <h4 class="profile-qa-answer-heading">回答內容</h4>
+                  <p id="profile-qa-answer-text" class="profile-qa-answer-text"></p>
+                  <div id="profile-qa-citations-section" class="profile-qa-citations-section" hidden>
+                    <h5 class="profile-qa-citations-heading">官方來源引用卡片</h5>
+                    <div id="profile-qa-citations-list" class="profile-qa-citations-list"></div>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            <section id="profile-edna-qa" class="profile-section profile-edna-qa-section" aria-labelledby="profile-edna-qa-heading">
+              <div class="profile-edna-qa-heading-row">
+                <h3 id="profile-edna-qa-heading">eDNA 歷史採樣問答</h3>
+              </div>
+              <p class="profile-edna-qa-disclaimer">本問答依據周邊歷史水樣 eDNA 分子訊號，不代表潛點現地目擊、目前物種存在或可見，也不是完整物種名錄。</p>
+              <form id="profile-edna-qa-form" class="profile-edna-qa-form">
+                <label for="profile-edna-qa-radius" class="profile-edna-qa-label">搜尋半徑（必填）</label>
+                <select id="profile-edna-qa-radius" name="radius_m" class="profile-edna-qa-select" disabled>
+                  <option value="" selected>請選擇搜尋半徑</option>
+                  <option value="500">500 公尺</option>
+                  <option value="1000">1,000 公尺</option>
+                  <option value="2000">2,000 公尺</option>
+                  <option value="5000">5,000 公尺</option>
+                </select>
+                <label for="profile-edna-qa-input" class="profile-edna-qa-label">提問內容（2–500 字元）</label>
+                <textarea
+                  id="profile-edna-qa-input"
+                  name="question"
+                  class="profile-edna-qa-textarea"
+                  rows="3"
+                  maxlength="500"
+                  placeholder="請先選取潛點與搜尋半徑；可針對特定距離內之歷史水樣檢出紀錄提問…"
+                  aria-describedby="profile-edna-qa-counter profile-edna-qa-hint"
+                  disabled
+                ></textarea>
+                <div class="profile-edna-qa-form-footer">
+                  <span id="profile-edna-qa-counter" class="profile-edna-qa-counter" aria-live="polite">0 / 500 字</span>
+                  <button id="profile-edna-qa-submit" type="submit" class="profile-edna-qa-submit-button" disabled>送出提問</button>
+                </div>
+                <p id="profile-edna-qa-hint" class="field-note visually-hidden">請選擇半徑並輸入 2 至 500 字元之繁體中文提問。</p>
+              </form>
+              <div id="profile-edna-qa-output" class="profile-edna-qa-output">
+                <p id="profile-edna-qa-status" class="profile-edna-qa-status" role="status" aria-live="polite">請點選地圖標記或潛點清單以啟用問答。</p>
+                <div id="profile-edna-qa-answer-container" class="profile-edna-qa-answer-container" hidden>
+                  <h4 class="profile-edna-qa-answer-heading">回答內容</h4>
+                  <p id="profile-edna-qa-answer-text" class="profile-edna-qa-answer-text"></p>
+                  <div id="profile-edna-qa-citations-section" class="profile-edna-qa-citations-section" hidden>
+                    <h5 class="profile-edna-qa-citations-heading">歷史 eDNA 來源引用卡片</h5>
+                    <div id="profile-edna-qa-citations-list" class="profile-edna-qa-citations-list"></div>
+                  </div>
+                </div>
+              </div>
+            </section>
+
             <section class="profile-section" aria-labelledby="profile-limitations-heading">
               <h3 id="profile-limitations-heading">資料限制</h3>
               <ul id="profile-limitations" class="profile-limitations"></ul>
